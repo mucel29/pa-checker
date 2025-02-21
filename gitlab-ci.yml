@@ -1,0 +1,36 @@
+image: golang:1.23.6
+
+stages:
+  - format
+  - lint
+  # TODO: sa facem un script in asa fel incat sa putem sa luam direct executabilul si pt linux si pt windows
+  - build
+
+format:
+  timeout: 5min
+  stage: format
+  script:
+    - make fmt
+
+lint:
+  timeout: 7min
+  stage: lint
+  script:
+    - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.64.5
+    - go install honnef.co/go/tools/cmd/staticcheck@latest
+
+    - make vet
+    - make lint
+    - make staticcheck
+
+compile:
+  stage: build
+  script:
+    - echo "yay"
+
+  # TODO schimba astea dupa ce facem scriptul
+  #   - mkdir -p bin
+  #   - make build
+  # artifacts:
+  #   paths:
+  #     - bin

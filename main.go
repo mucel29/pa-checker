@@ -10,12 +10,19 @@ import (
 var moduleConfigStr string
 
 //go:embed res/user_config.json
-var defaultUerConfigStr string
+var defaultUserConfigStr string
 
 func main() {
+	userConfig, err := utils.NewUserConfig(defaultUserConfigStr)
+	if err != nil {
+		panic(err)
+	}
 
-	userConfig, _ := utils.ParseCommentedJSON(defaultUerConfigStr)
+	moduleConfig, err := utils.NewModuleConfig(moduleConfigStr)
+	if err != nil {
+		panic(err)
+	}
 
-	fmt.Println(userConfig.Stringify())
-
+	fmt.Println(userConfig)
+	fmt.Println(moduleConfig)
 }
