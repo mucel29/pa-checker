@@ -7,23 +7,26 @@ import (
 
 var commentRegex = regexp.MustCompile("//.*")
 
-type JsonObject map[string]interface{}
-
-func ParseCommentedJSON(source string) (JsonObject, error) {
-	var root JsonObject
-	uncommentedSource := commentRegex.ReplaceAllString(source, "")
-
-	err := json.Unmarshal([]byte(uncommentedSource), &root)
-
-	return root, err
-}
-
-func (root JsonObject) Stringify() string {
-	bytes, err := json.MarshalIndent(root, "", "  ")
+func NewUserConfig(source string) (*UserConfig, error) {
+	var m UserConfig
+	newSource := commentRegex.ReplaceAllString(source, "")
+	err := json.Unmarshal([]byte(newSource), &m)
 
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	return string(bytes[:])
+	return &m, nil
+}
+
+func NewModuleConfig(source string) (*ModuleConfig, error) {
+	var m ModuleConfig
+	newSource := commentRegex.ReplaceAllString(source, "")
+	err := json.Unmarshal([]byte(newSource), &m)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &m, nil
 }

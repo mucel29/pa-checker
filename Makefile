@@ -1,5 +1,6 @@
 BINARY_NAME=checker
 SOURCE_DIR=./src
+pkgs = ./src/utils
 
 
 UNAME_S := $(shell uname -s)
