@@ -16,7 +16,12 @@ var moduleConfigStr string
 var defaultUserConfigStr string
 
 func main() {
+	userConfig, err := utils.NewUserConfig(defaultUserConfigStr)
+	if err != nil {
+		panic(err)
+	}
 
+<<<<<<< HEAD
 	utils.InitConfig(defaultUserConfigStr, moduleConfigStr)
 	// TODO: check for user config
 
@@ -47,5 +52,13 @@ func main() {
 			fmt.Printf("Score: %d\n\n\n", moduleOutput.Score)
 		}
 	}
+=======
+	moduleConfig, err := utils.NewModuleConfig(moduleConfigStr)
+	if err != nil {
+		panic(err)
+	}
+>>>>>>> 44b5a3e (infra: modified utils and added concrete types for module config and user config)
 
+	fmt.Println(userConfig)
+	fmt.Println(moduleConfig)
 }
