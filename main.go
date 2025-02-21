@@ -1,6 +1,7 @@
 package main
 
 import (
+	"checker-pa/src/manager"
 	"checker-pa/src/utils"
 	_ "embed"
 	"fmt"
@@ -13,16 +14,29 @@ var moduleConfigStr string
 var defaultUserConfigStr string
 
 func main() {
-	userConfig, err := utils.NewUserConfig(defaultUserConfigStr)
+
+	utils.InitConfig(defaultUserConfigStr, moduleConfigStr)
+	// TODO: check for user config
+
+	m, err := manager.NewManager()
+
 	if err != nil {
 		panic(err)
 	}
 
-	moduleConfig, err := utils.NewModuleConfig(moduleConfigStr)
-	if err != nil {
-		panic(err)
+	fmt.Println(utils.Config.UserConfig)
+	fmt.Println(utils.Config.ModuleConfig)
+	fmt.Println()
+
+	m.Run()
+
+	for _, module := range m.Modules {
+		moduleOutput := module.Details()
+		if moduleOutput.Error != nil {
+			fmt.Println(moduleOutput.Error)
+		}
+
+		fmt.Printf("Score: %d\n\n\n", moduleOutput.Score)
 	}
 
-	fmt.Println(userConfig)
-	fmt.Println(moduleConfig)
 }
