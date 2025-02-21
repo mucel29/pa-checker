@@ -38,15 +38,15 @@ type StyleChecker struct {
 }
 
 type ModuleConfig struct {
-	RefChecker    `json:"ref_checker"`
-	CommitChecker `json:"commit_checker"`
-	MemoryChecker `json:"memory_checker"`
-	StyleChecker  `json:"style_checker"`
+	*RefChecker    `json:"ref_checker"`
+	*CommitChecker `json:"commit_checker"`
+	*MemoryChecker `json:"memory_checker"`
+	*StyleChecker  `json:"style_checker"`
 }
 
 type UserConfig struct {
 	SourcePath     string `json:"source_path"`
-	ExectuablePath string `json:"executable_path"`
+	ExecutablePath string `json:"executable_path"`
 	OutputPath     string `json:"output_path"`
 	RefPath        string `json:"ref_path"`
 }
