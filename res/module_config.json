@@ -1,0 +1,79 @@
+// EXAMPLE MODULE CONFIG --- CHANGE LATER
+
+{
+    "ref_checker": {
+        "run_after": [],
+        "input_path": "./path/to/exec",  // might convert to enums?
+        "tests": [
+            {
+                "displayName": "test_01",
+                "args": ["arg1", "arg2", "arg3"],
+                "ordered": false,
+                "whitespace": false,
+                "score": 2
+            },
+            {
+                "displayName": "test_02",
+                "args": ["arg1", "arg2", "arg3"],
+                "ordered": false,
+                "whitespace": false,
+                "score": 3
+            },
+            {
+                "displayName": "test_03",
+                "args": ["arg1", "arg2", "arg3"],
+                "ordered": true,
+                "whitespace": false,
+                "score": 3
+            },
+            {
+                "displayName": "test_04",
+                "args": ["arg1", "arg2", "arg3"],
+                "ordered": true,
+                "whitespace": false,
+                "score": 4
+            },
+            {
+                "displayName": "test_05",
+                "args": ["arg1", "arg2", "arg3"],
+                "ordered": true,
+                "whitespace": true,
+                "score": 10
+            }
+        ]
+    },
+    "commit_checker": {
+        "run_after": [],
+        "minCommits": 5,
+        "useFormat": true,
+        "score": 5
+    },
+    "memory_checker": {
+        "run_after": [],
+        "maxWarnings": 10,
+        "maxLeak": 100, // MB
+        "score": 5
+    },
+    "style_checker": {
+        "run_after": ["ref_checker", "memory_checker"],
+        "score_threshold": 60,
+        "thresholds": [
+            {
+                "under": 5,
+                "score": 10
+            },
+            {
+                "under": 15,
+                "score": 8
+            },
+            {
+                "under": 45,
+                "score": 4
+            },
+            {
+                "under": 70,
+                "score": 2
+            }
+        ]
+    }
+}
