@@ -1,7 +1,7 @@
 // EXAMPLE USER SETTINGS CONFIG
 
 {
-    "source_path": "./src",
+    "source_path": "./temp/tema",
     "executable_path": "./a.out",
     "output_path": "./out",
     "ref_path": "./ref"
