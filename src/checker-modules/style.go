@@ -6,7 +6,6 @@ import (
 	"checker-pa/src/utils"
 	"encoding/xml"
 	"fmt"
-	"math"
 	"os"
 	"os/exec"
 	"strings"
@@ -16,7 +15,28 @@ import (
 
 type StyleChecker struct {
 	issues     []ModuleIssue
-	totalScore int32
+	totalScore uint32
+}
+
+type cppcheckResults struct {
+	XMLName xml.Name   `xml:"results"`
+	Version string     `xml:"version,attr"`
+	Errors  []cppError `xml:"errors>error"`
+}
+
+type cppError struct {
+	ID        string     `xml:"id,attr"`
+	Severity  string     `xml:"severity,attr"`
+	Msg       string     `xml:"msg,attr"`
+	Verbose   string     `xml:"verbose,attr"`
+	Locations []location `xml:"location"`
+}
+
+type location struct {
+	File   string `xml:"file,attr"`
+	Line   int    `xml:"line,attr"`
+	Column int    `xml:"column,attr"`
+	Info   string `xml:"info,attr"`
 }
 
 func (sc *StyleChecker) GetName() string {
@@ -56,7 +76,7 @@ func (sc *StyleChecker) Run() {
 			Col:         0,
 			ShowLineCol: false,
 		})
-		sc.totalScore = -1 // Module failure
+		sc.totalScore = 0
 		return
 	}
 
@@ -80,17 +100,16 @@ func (sc *StyleChecker) Run() {
 
 	if err := cmd.Run(); err != nil {
 		sc.issues = append(sc.issues, ModuleIssue{
-			Message: fmt.Sprintf("cppcheck execution failed: %v\n%s", err, stdout.String()),
-			// stdout contains the error message
+			Message:     fmt.Sprintf("cppcheck execution failed: %v\n%s", err, stdout.String()), // in stdout there is the error message
 			Line:        0,
 			Col:         0,
 			ShowLineCol: false,
 		})
-		sc.totalScore = -1 // Module failure
+		sc.totalScore = 0
 		return
 	}
 
-	var results utils.CppcheckResults
+	var results cppcheckResults
 	if err := xml.Unmarshal(stderr.Bytes(), &results); err != nil {
 		sc.issues = append(sc.issues, ModuleIssue{
 			File:        "",
@@ -146,9 +165,13 @@ func (sc *StyleChecker) Run() {
 // maybe based on severity and type of issues found
 // also these should be configurable in the config file
 func (sc *StyleChecker) calculateScore() {
-	baseScore := int32(100)
-	deduction := int32(len(sc.issues) * 5) // Deduct 5 points per issue
-	sc.totalScore = int32(math.Max(0, float64(baseScore-deduction)))
+	baseScore := uint32(100)
+	deduction := uint32(len(sc.issues) * 5) // Deduct 5 points per issue
+	if deduction > baseScore {
+		sc.totalScore = 0
+	} else {
+		sc.totalScore = baseScore - deduction
+	}
 }
 
 func (sc *StyleChecker) readLineFromFile(filePath string, lineNum int) (string, error) {
