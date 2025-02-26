@@ -18,27 +18,6 @@ type StyleChecker struct {
 	totalScore uint32
 }
 
-type cppcheckResults struct {
-	XMLName xml.Name   `xml:"results"`
-	Version string     `xml:"version,attr"`
-	Errors  []cppError `xml:"errors>error"`
-}
-
-type cppError struct {
-	ID        string     `xml:"id,attr"`
-	Severity  string     `xml:"severity,attr"`
-	Msg       string     `xml:"msg,attr"`
-	Verbose   string     `xml:"verbose,attr"`
-	Locations []location `xml:"location"`
-}
-
-type location struct {
-	File   string `xml:"file,attr"`
-	Line   int    `xml:"line,attr"`
-	Column int    `xml:"column,attr"`
-	Info   string `xml:"info,attr"`
-}
-
 func (sc *StyleChecker) GetName() string {
 	return "style_checker"
 }
@@ -109,7 +88,7 @@ func (sc *StyleChecker) Run() {
 		return
 	}
 
-	var results cppcheckResults
+	var results utils.CppcheckResults
 	if err := xml.Unmarshal(stderr.Bytes(), &results); err != nil {
 		sc.issues = append(sc.issues, ModuleIssue{
 			File:        "",
