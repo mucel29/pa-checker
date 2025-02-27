@@ -1,5 +1,7 @@
 package utils
 
+import "encoding/xml"
+
 type Test struct {
 	DisplayName string   `json:"displayName"`
 	Args        []string `json:"args"`
@@ -49,4 +51,25 @@ type UserConfig struct {
 	ExecutablePath string `json:"executable_path"`
 	OutputPath     string `json:"output_path"`
 	RefPath        string `json:"ref_path"`
+}
+
+type CppcheckResults struct {
+	XMLName xml.Name   `xml:"results"`
+	Version string     `xml:"version,attr"`
+	Errors  []CppError `xml:"errors>error"`
+}
+
+type CppError struct {
+	ID        string        `xml:"id,attr"`
+	Severity  string        `xml:"severity,attr"`
+	Msg       string        `xml:"msg,attr"`
+	Verbose   string        `xml:"verbose,attr"`
+	Locations []CppLocation `xml:"location"`
+}
+
+type CppLocation struct {
+	File   string `xml:"file,attr"`
+	Line   int    `xml:"line,attr"`
+	Column int    `xml:"column,attr"`
+	Info   string `xml:"info,attr"`
 }
