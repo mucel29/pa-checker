@@ -3,9 +3,11 @@ package checker_modules
 import "strconv"
 
 type ModuleIssue struct {
-	Line    uint32
-	Col     uint32
-	Message string
+	File        string
+	Line        uint32
+	Col         uint32
+	Message     string
+	ShowLineCol bool
 }
 
 type ModuleError struct {
@@ -14,8 +16,9 @@ type ModuleError struct {
 }
 
 type ModuleOutput struct {
-	Score uint32
-	Error *ModuleError
+	Score   int32
+	Error   *ModuleError
+	Message []ModuleIssue
 }
 
 type CheckerModule interface {
@@ -30,7 +33,10 @@ func (err *ModuleError) String() string {
 	message := err.Details + "\n"
 
 	for _, issue := range err.Issues {
-		message += strconv.Itoa(int(issue.Line)) + ":" + strconv.Itoa(int(issue.Col)) + " " + issue.Message + "\n"
+		if issue.ShowLineCol {
+			message += strconv.Itoa(int(issue.Line)) + ":" + strconv.Itoa(int(issue.Col)) + " "
+		}
+		message += issue.Message + "\n"
 	}
 
 	return message

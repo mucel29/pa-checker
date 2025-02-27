@@ -5,6 +5,8 @@ import (
 	"checker-pa/src/utils"
 	_ "embed"
 	"fmt"
+
+	"github.com/fatih/color"
 )
 
 //go:embed res/module_config.json
@@ -36,7 +38,14 @@ func main() {
 			fmt.Println(moduleOutput.Error)
 		}
 
-		fmt.Printf("Score: %d\n\n\n", moduleOutput.Score)
+		if moduleOutput.Score < 0 {
+			color.New(color.FgRed).Printf("MODULE FAILURE: %s\nScore: N/A\n\n\n", module.GetName())
+			color.Unset()
+			continue
+		} else {
+			// TODO: if threshold is set, check if score is below threshold then print red, else print green
+			fmt.Printf("Score: %d\n\n\n", moduleOutput.Score)
+		}
 	}
 
 }
