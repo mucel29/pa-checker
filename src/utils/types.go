@@ -1,10 +1,7 @@
 package utils
 
-<<<<<<< HEAD
 import "encoding/xml"
 
-=======
->>>>>>> 44b5a3e (infra: modified utils and added concrete types for module config and user config)
 type Test struct {
 	DisplayName string   `json:"displayName"`
 	Args        []string `json:"args"`
@@ -43,22 +40,14 @@ type StyleChecker struct {
 }
 
 type ModuleConfig struct {
-<<<<<<< HEAD
 	*RefChecker    `json:"ref_checker"`
 	*CommitChecker `json:"commit_checker"`
 	*MemoryChecker `json:"memory_checker"`
 	*StyleChecker  `json:"style_checker"`
-=======
-	RefChecker    `json:"ref_checker"`
-	CommitChecker `json:"commit_checker"`
-	MemoryChecker `json:"memory_checker"`
-	StyleChecker  `json:"style_checker"`
->>>>>>> 44b5a3e (infra: modified utils and added concrete types for module config and user config)
 }
 
 type UserConfig struct {
 	SourcePath     string `json:"source_path"`
-<<<<<<< HEAD
 	ExecutablePath string `json:"executable_path"`
 	OutputPath     string `json:"output_path"`
 	RefPath        string `json:"ref_path"`
@@ -84,9 +73,3 @@ type CppLocation struct {
 	Column int    `xml:"column,attr"`
 	Info   string `xml:"info,attr"`
 }
-=======
-	ExectuablePath string `json:"executable_path"`
-	OutputPath     string `json:"output_path"`
-	RefPath        string `json:"ref_path"`
-}
->>>>>>> 44b5a3e (infra: modified utils and added concrete types for module config and user config)

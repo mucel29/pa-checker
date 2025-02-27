@@ -39,9 +39,24 @@ lint:
 staticcheck:
 	staticcheck $(PKGS)
 
+<<<<<<< HEAD
 # Generic build function
 build:
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o $(BIN_DIR)/$(BINARY_NAME)$(BINARY_EXTENSION) ./main.go
+=======
+#TODO REPLACE THESE WITH A BUILD SCRIPT
+build-linux:
+# Don't ask why the indent is haywire. Make just blows up otherwise
+ifeq ($(OS), Windows_NT)
+	set GOOS=linux
+	set GOARCH=amd64
+	go build -o ./bin/${BINARY_NAME} ./main.go
+else ifeq ($(UNAME_S), Linux)
+	GOARCH=amd64 GOOS=linux go build -o ./bin/${BINARY_NAME} ./main.go
+else
+	@echo "OS not supported."
+endif
+>>>>>>> 3d170ca (fix: changed the naming of gitlab actions and golanglinter files)
 
 # Platform-specific builds
 build-linux: GOOS=linux
