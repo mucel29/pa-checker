@@ -6,6 +6,7 @@ import (
 	"checker-pa/src/utils"
 	"encoding/xml"
 	"fmt"
+	"math"
 	"os"
 	"os/exec"
 	"strings"
@@ -15,7 +16,7 @@ import (
 
 type StyleChecker struct {
 	issues     []ModuleIssue
-	totalScore uint32
+	totalScore int32
 }
 
 func (sc *StyleChecker) GetName() string {
@@ -55,7 +56,7 @@ func (sc *StyleChecker) Run() {
 			Col:         0,
 			ShowLineCol: false,
 		})
-		sc.totalScore = 0
+		sc.totalScore = -1 // Module failure
 		return
 	}
 
@@ -79,12 +80,13 @@ func (sc *StyleChecker) Run() {
 
 	if err := cmd.Run(); err != nil {
 		sc.issues = append(sc.issues, ModuleIssue{
-			Message:     fmt.Sprintf("cppcheck execution failed: %v\n%s", err, stdout.String()), // in stdout there is the error message
+			Message: fmt.Sprintf("cppcheck execution failed: %v\n%s", err, stdout.String()),
+			// stdout contains the error message
 			Line:        0,
 			Col:         0,
 			ShowLineCol: false,
 		})
-		sc.totalScore = 0
+		sc.totalScore = -1 // Module failure
 		return
 	}
 
@@ -144,13 +146,9 @@ func (sc *StyleChecker) Run() {
 // maybe based on severity and type of issues found
 // also these should be configurable in the config file
 func (sc *StyleChecker) calculateScore() {
-	baseScore := uint32(100)
-	deduction := uint32(len(sc.issues) * 5) // Deduct 5 points per issue
-	if deduction > baseScore {
-		sc.totalScore = 0
-	} else {
-		sc.totalScore = baseScore - deduction
-	}
+	baseScore := int32(100)
+	deduction := int32(len(sc.issues) * 5) // Deduct 5 points per issue
+	sc.totalScore = int32(math.Max(0, float64(baseScore-deduction)))
 }
 
 func (sc *StyleChecker) readLineFromFile(filePath string, lineNum int) (string, error) {

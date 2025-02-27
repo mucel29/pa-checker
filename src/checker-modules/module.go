@@ -16,7 +16,7 @@ type ModuleError struct {
 }
 
 type ModuleOutput struct {
-	Score   uint32
+	Score   int32
 	Error   *ModuleError
 	Message []ModuleIssue
 }

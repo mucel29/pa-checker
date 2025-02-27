@@ -4,7 +4,7 @@ import "math/rand"
 
 type DummyModule struct {
 	issues     []ModuleIssue
-	totalScore uint32
+	totalScore int32
 }
 
 func (dummy *DummyModule) GetName() string {
@@ -27,7 +27,7 @@ func (dummy *DummyModule) Run() {
 				Col:     uint32(rand.Intn(100))})
 	}
 
-	dummy.totalScore = uint32(rand.Intn(70))
+	dummy.totalScore = int32(rand.Intn(70))
 }
 
 func (dummy *DummyModule) Details() ModuleOutput {
