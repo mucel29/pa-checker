@@ -62,7 +62,7 @@ func (cc *CommitChecker) Details() ModuleOutput {
 
 	moduleIssues := make([]ModuleIssue, len(cc.issues))
 	for i, issue := range cc.issues {
-		mo.Score -= max(0, mo.Score-issue.deduction)
+		mo.Score = max(0, mo.Score-issue.deduction)
 		moduleIssues[i] = ModuleIssue{Message: issue.message, ShowLineCol: false}
 	}
 
@@ -93,7 +93,7 @@ func checkCommits(line string) error {
 }
 
 func (cc *CommitChecker) Run() {
-	args := []string{"log", "--oneline", "-all"}
+	args := []string{"log", "--oneline", "--all"}
 	cmd := exec.Command("git", args...)
 
 	output, err := cmd.Output()
@@ -104,8 +104,8 @@ func (cc *CommitChecker) Run() {
 			return
 		}
 		//if the student didn't "git init" before, this will give an ambiguous error
-		_, err := os.Stat(".git")
-		if errors.Is(err, os.ErrNotExist) {
+		_, newErr := os.Stat(".git")
+		if errors.Is(newErr, os.ErrNotExist) {
 			errMsg := "Couldn't find any commits, are you sure you ran 'git init' firstly?"
 			issue := issue{message: errMsg, deduction: 0}
 			cc.issues = append(cc.issues, issue)
