@@ -11,7 +11,7 @@ import (
 
 type issue struct {
 	message   string
-	deduction uint32
+	deduction int32
 }
 
 type CommitChecker struct {
@@ -36,12 +36,12 @@ func (cc *CommitChecker) Reset() {
 
 func (cc *CommitChecker) Details() ModuleOutput {
 	minCommits := utils.Config.CommitChecker.MinCommits
-	points := uint32(utils.Config.CommitChecker.Score)
+	points := int32(utils.Config.CommitChecker.Score)
 	mo := ModuleOutput{Score: points}
 
 	if minCommits > len(cc.commits) {
-		pointsToDeduct := uint32(2)
-		mo.Score -= pointsToDeduct
+		pointsToDeduct := 2
+		mo.Score -= int32(pointsToDeduct)
 		issueMsg := "Not enough commits have been made."
 		mo.Message = append(mo.Message, ModuleIssue{Message: issueMsg, ShowLineCol: false})
 	}
