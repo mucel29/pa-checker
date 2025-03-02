@@ -3,6 +3,7 @@ package checker_modules
 import (
 	"bufio"
 	"bytes"
+	"checker-pa/src/display"
 	"checker-pa/src/utils"
 	"encoding/xml"
 	"fmt"
@@ -27,24 +28,36 @@ func (sc *StyleChecker) WaitingFor() []string {
 	return []string{} // No dependencies
 }
 
-func (sc *StyleChecker) Details() ModuleOutput {
-	var err *ModuleError = nil
+func (sc *StyleChecker) Details(display display.Display) {
+
+	// Display module summary
+	display.PrintPage(0, "Style checker Summary\n", "")
+	display.Println("\nTotal module score: " + fmt.Sprint(sc.totalScore) + "\n")
+
+	// Display errors
 	if len(sc.issues) > 0 {
-		err = &ModuleError{
+		err := ModuleError{
 			Details: "Style issues found in the code",
 			Issues:  sc.issues,
 		}
+
+		display.PrintPage(1, "Style checker errors\n", err.String())
+
 	}
-	return ModuleOutput{
-		Score:   sc.totalScore,
-		Error:   err,
-		Message: sc.issues,
-	}
+
 }
 
 func (sc *StyleChecker) Reset() {
 	sc.issues = nil
 	sc.totalScore = 0
+}
+
+func (sc *StyleChecker) Score() uint32 {
+	if sc.totalScore < 0 {
+		return 0
+	} else {
+		return uint32(sc.totalScore)
+	}
 }
 
 func (sc *StyleChecker) Run() {
@@ -73,7 +86,7 @@ func (sc *StyleChecker) Run() {
 		config.SourcePath,
 	}
 
-	cmd := exec.Command("cppcheck", args...)
+	cmd := exec.Command("./temp/cppcheck/cppcheck", args...)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
