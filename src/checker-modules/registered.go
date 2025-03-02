@@ -1,8 +1,8 @@
 package checker_modules
 
 var AvailableModules = map[string]CheckerModule{
-	"ref_checker":    &DummyModule{},
-	"memory_checker": &DummyModule{},
+	"ref_checker":    NewDummyModule(),
+	"memory_checker": NewDummyModule(),
 	"style_checker":  &StyleChecker{},
-	"commit_checker": &DummyModule{},
+	"commit_checker": NewDummyModule(),
 }

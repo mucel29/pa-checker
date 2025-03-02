@@ -1,14 +1,29 @@
 package checker_modules
 
-import "math/rand"
+import (
+	"checker-pa/src/display"
+	"fmt"
+	"math/rand"
+	"strconv"
+)
 
 type DummyModule struct {
 	issues     []ModuleIssue
-	totalScore int32
+	totalScore uint32
+	uniqueName string
+}
+
+func NewDummyModule() *DummyModule {
+	newDummy := &DummyModule{}
+	newDummy.issues = make([]ModuleIssue, 0)
+	newDummy.totalScore = 0
+	newDummy.uniqueName = "dummy-" + fmt.Sprintf("%x", rand.Intn(255))
+
+	return newDummy
 }
 
 func (dummy *DummyModule) GetName() string {
-	return "dummy"
+	return dummy.uniqueName
 }
 
 func (dummy *DummyModule) WaitingFor() []string {
@@ -27,26 +42,32 @@ func (dummy *DummyModule) Run() {
 				Col:     uint32(rand.Intn(100))})
 	}
 
-	dummy.totalScore = int32(rand.Intn(70))
+	dummy.totalScore = uint32(rand.Intn(70))
 }
 
-func (dummy *DummyModule) Details() ModuleOutput {
-	var err *ModuleError = nil
+func (dummy *DummyModule) Details(display display.Display) {
+
+	// Set the page title
+	display.PrintPage(0, dummy.uniqueName, "")
+
+	display.Println("\nTotal module score: " + strconv.Itoa(int(dummy.totalScore)))
 
 	if len(dummy.issues) > 0 {
-		err = &ModuleError{
+		err := &ModuleError{
 			Details: "Lorem ipsum dolor sit amet dolor sit amet dolor sit amet",
 			Issues:  dummy.issues,
 		}
-	}
 
-	return ModuleOutput{
-		Score: dummy.totalScore,
-		Error: err,
+		display.PrintPage(1, dummy.uniqueName+" errors", err.String())
+
 	}
 }
 
 func (dummy *DummyModule) Reset() {
 	dummy.totalScore = 0
 	dummy.issues = nil
+}
+
+func (dummy *DummyModule) Score() uint32 {
+	return dummy.totalScore
 }

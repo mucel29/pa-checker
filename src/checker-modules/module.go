@@ -1,6 +1,9 @@
 package checker_modules
 
-import "strconv"
+import (
+	"checker-pa/src/display"
+	"strconv"
+)
 
 type ModuleIssue struct {
 	File        string
@@ -25,14 +28,17 @@ type CheckerModule interface {
 	GetName() string
 	WaitingFor() []string
 	Run()
-	Details() ModuleOutput
+	// Details Print to the given output adapter
+	Details(display display.Display)
 	Reset()
+	Score() uint32
 }
 
 func (err *ModuleError) String() string {
 	message := err.Details + "\n"
 
 	for _, issue := range err.Issues {
+		message += "\n"
 		if issue.ShowLineCol {
 			message += strconv.Itoa(int(issue.Line)) + ":" + strconv.Itoa(int(issue.Col)) + " "
 		}
