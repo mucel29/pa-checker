@@ -3,6 +3,7 @@ package checker_modules
 import (
 	"bufio"
 	"bytes"
+	"checker-pa/src/display"
 	"checker-pa/src/utils"
 	"encoding/xml"
 	"fmt"
@@ -27,24 +28,32 @@ func (sc *StyleChecker) WaitingFor() []string {
 	return []string{} // No dependencies
 }
 
-func (sc *StyleChecker) Details() ModuleOutput {
-	var err *ModuleError = nil
+func (sc *StyleChecker) Details(display display.Display) {
+	// Display module summary
+	display.PrintPage(0, "Style checker Summary\n", "")
+	display.Println("\nTotal module score: " + fmt.Sprint(sc.totalScore) + "\n")
+
+	// Display errors
 	if len(sc.issues) > 0 {
-		err = &ModuleError{
+		err := ModuleError{
 			Details: "Style issues found in the code",
 			Issues:  sc.issues,
 		}
-	}
-	return ModuleOutput{
-		Score:   sc.totalScore,
-		Error:   err,
-		Message: sc.issues,
+		display.PrintPage(1, "Style checker errors\n", err.String())
 	}
 }
 
 func (sc *StyleChecker) Reset() {
 	sc.issues = nil
 	sc.totalScore = 0
+}
+
+func (sc *StyleChecker) Score() uint32 {
+	if sc.totalScore < 0 {
+		return 0
+	} else {
+		return uint32(sc.totalScore)
+	}
 }
 
 func (sc *StyleChecker) Run() {
@@ -106,9 +115,9 @@ func (sc *StyleChecker) Run() {
 	// Convert cppcheck errors to module issues
 	for _, err := range results.Errors {
 		for _, loc := range err.Locations {
-			// Read the line content from the file
-			lineContent, readErr := sc.readLineFromFile(loc.File, loc.Line)
-			pointer := sc.createPointer(loc.Column)
+			// Read the line content from the file and create pointer
+			severityColor := sc.getSeverityColor(err.Severity)
+			lineWithPointer, readErr := sc.readLineAndCreatePointer(loc.File, loc.Line, loc.Column, severityColor)
 
 			var message string
 			if readErr != nil {
@@ -117,15 +126,14 @@ func (sc *StyleChecker) Run() {
 			} else {
 				severityColor := sc.getSeverityColor(err.Severity)
 				idColor := color.New(color.FgHiBlack)
-				message = fmt.Sprintf("%s:%d:%d: %s: %s %s\n%s\n%s",
+				message = fmt.Sprintf("%s:%d:%d: %s: %s %s\n%s",
 					loc.File,
 					loc.Line,
 					loc.Column,
 					severityColor.Add(color.Bold).Sprint(err.Severity),
 					err.Msg,
 					idColor.Sprintf("[%s]", err.ID),
-					lineContent,
-					severityColor.Sprint(pointer))
+					lineWithPointer)
 			}
 
 			sc.issues = append(sc.issues, ModuleIssue{
@@ -138,7 +146,7 @@ func (sc *StyleChecker) Run() {
 		}
 	}
 
-	// Calculate score based on number and severity of issues
+	// Calculate the score
 	sc.calculateScore()
 }
 
@@ -151,34 +159,46 @@ func (sc *StyleChecker) calculateScore() {
 	sc.totalScore = int32(math.Max(0, float64(baseScore-deduction)))
 }
 
-func (sc *StyleChecker) readLineFromFile(filePath string, lineNum int) (string, error) {
+// Implementation of error formatting inspired by
+// https://github.com/danmar/cppcheck/blob/main/lib/errorlogger.cpp
+func (sc *StyleChecker) readLineAndCreatePointer(filePath string, lineNum int, column int, severityColor *color.Color) (string, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return "", err
 	}
-	defer file.Close() // Ensure the file is closed after reading
+	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
 	currentLine := 0
+
 	for scanner.Scan() {
 		currentLine++
 		if currentLine == lineNum {
-			return scanner.Text(), nil
+			line := scanner.Text()
+
+			// Trim trailing whitespace
+			line = strings.TrimRightFunc(line, func(r rune) bool {
+				return r == '\r' || r == '\n' || r == '\t' || r == ' '
+			})
+
+			// Replace tabs with spaces
+			line = strings.ReplaceAll(line, "\t", " ")
+
+			// Ensure column is at least 1 to avoid negative Repeat count
+			safeColumn := column
+			if safeColumn < 1 {
+				safeColumn = 1
+			}
+
+			// Create the pointer line
+			pointerLine := strings.Repeat(" ", safeColumn-1) + "^"
+
+			// Return the code line followed by pointer line
+			return line + "\n" + severityColor.Sprint(pointerLine), nil
 		}
 	}
-	return "", fmt.Errorf("line %d not found", lineNum)
-}
 
-// Helper function to create the pointer string
-func (sc *StyleChecker) createPointer(column int) string {
-	// should never be reached
-	if column < 1 {
-		column = 1
-	}
-	if column > 1000 {
-		return "" // no pointer for very long lines
-	}
-	return strings.Repeat(" ", column-1) + "^"
+	return "", fmt.Errorf("line %d not found", lineNum)
 }
 
 func (sc *StyleChecker) getSeverityColor(severity string) *color.Color {

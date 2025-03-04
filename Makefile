@@ -1,9 +1,7 @@
 BINARY_NAME=checker
 SOURCE_DIR=./src
-
-PKGS =	./src 		\
-	 	./main.go
-
+PKGS = 	./src         \
+		./main.go
 BIN_DIR=./bin
 
 # OS detection

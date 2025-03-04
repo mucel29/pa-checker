@@ -4,6 +4,7 @@ import (
 	"checker-pa/src/checker-modules"
 	"checker-pa/src/utils"
 	"errors"
+	"fmt"
 	"log"
 )
 
@@ -68,6 +69,7 @@ func runDeferred(deferred []checker_modules.CheckerModule, finished map[string]b
 	for i, deferredModule := range deferred {
 		if checkDependencies(deferredModule, finished) {
 			deferred = append(deferred[:i], deferred[i+1:]...)
+			fmt.Println("Running " + deferredModule.GetName() + " module")
 			deferredModule.Run()
 			finished[deferredModule.GetName()] = true
 		}
@@ -81,6 +83,7 @@ func (m *Manager) Run() {
 	for _, module := range m.Modules {
 		// If the current module doesn't need to wait for another, just run it
 		if checkDependencies(module, finished) {
+			fmt.Println("Running " + module.GetName() + " module")
 			module.Run()
 			finished[module.GetName()] = true
 		} else {
@@ -112,4 +115,13 @@ func (m *Manager) Run() {
 		log.Fatal("Module dependency cycle detected")
 	}
 
+}
+
+func (m *Manager) TotalScore() uint32 {
+	var total uint32
+	for _, module := range m.Modules {
+		total += module.Score()
+	}
+
+	return total
 }
