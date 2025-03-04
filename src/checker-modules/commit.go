@@ -7,8 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-
-	"github.com/fatih/color"
 )
 
 type issue struct {
@@ -22,7 +20,6 @@ type CommitChecker struct {
 }
 
 var ErrNotFound error = errors.New("The checker couldn't find git on your system. Are you sure it's installed?")
-var criticalErrorPainter = color.New(color.Red)
 
 func (*CommitChecker) GetName() string {
 	return "commit_checker"
@@ -115,7 +112,7 @@ func (cc *CommitChecker) Run() {
 			return
 		}
 
-		issue := issue{message: criticalErrorPainter.Sprintf("CRITICAL ERROR! %s", err.Error()), deduction: 0}
+		issue := issue{message: "CRITICAL ERROR! " + err.Error(), deduction: 0}
 		cc.issues = append(cc.issues, issue)
 		return
 	}
@@ -132,7 +129,7 @@ func (cc *CommitChecker) Run() {
 	//sanity check, it shouldn't happen ... i hope
 	if len(lines) == 0 {
 		//maybe put something more ... non screaming
-		errMsg := criticalErrorPainter.Sprintln("CRITICAL ERROR IN COMMIT CHECKER! #1")
+		errMsg := "CRITICAL ERROR IN COMMIT CHECKER! #1"
 		issue := issue{message: errMsg, deduction: 0}
 		cc.issues = append(cc.issues, issue)
 		return
@@ -146,7 +143,7 @@ func (cc *CommitChecker) Run() {
 
 		//this shouldn't happen but ... you never know
 		if len(splitLine) == 0 {
-			errMsg := criticalErrorPainter.Sprintln("CRITICAL ERROR IN COMMIT CHECKER! #2")
+			errMsg := "CRITICAL ERROR IN COMMIT CHECKER! #2"
 			issue := issue{message: errMsg, deduction: 0}
 			cc.issues = append(cc.issues, issue)
 			return
