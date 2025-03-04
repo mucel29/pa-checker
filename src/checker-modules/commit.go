@@ -1,8 +1,10 @@
 package checker_modules
 
 import (
+	"checker-pa/src/display"
 	"checker-pa/src/utils"
 	"errors"
+	"fmt"
 	"math"
 	"os"
 	"os/exec"
@@ -17,6 +19,7 @@ type issue struct {
 type CommitChecker struct {
 	issues  []issue
 	commits []string
+	score   uint32
 }
 
 var ErrNotFound error = errors.New("The checker couldn't find git on your system. Are you sure it's installed?")
@@ -32,47 +35,54 @@ func (*CommitChecker) WaitingFor() []string {
 func (cc *CommitChecker) Reset() {
 	cc.commits = nil
 	cc.issues = nil
+	cc.score = 0
 }
 
-func (cc *CommitChecker) Details() ModuleOutput {
+func (cc *CommitChecker) Score() uint32 {
+	return cc.score
+}
+
+func (cc *CommitChecker) Details(display display.Display) {
+	display.PrintPage(0, "Commit checker summary\n", "")
+
 	minCommits := utils.Config.CommitChecker.MinCommits
 	points := int32(utils.Config.CommitChecker.Score)
-	mo := ModuleOutput{Score: points}
+	cc.score = uint32(points)
 
 	if minCommits > len(cc.commits) {
 		pointsToDeduct := 2
-		mo.Score -= int32(pointsToDeduct)
+		cc.score -= uint32(pointsToDeduct)
 		issueMsg := "Not enough commits have been made."
-		mo.Message = append(mo.Message, ModuleIssue{Message: issueMsg, ShowLineCol: false})
+		cc.issues = append(cc.issues, issue{message: issueMsg})
 	}
 
 	if len(cc.issues) == 0 {
-		return mo
+		display.Println("No issues found!")
+		display.Println(fmt.Sprintf("Got %d/%d points! Congrats :)", points, points))
+		return
 	}
 
 	//means we have a internal error/
 	if len(cc.issues) == 1 {
 		//means we have internal error or .git doesn't exit
 		if cc.issues[0].deduction == 0 {
-			mo.Error = &ModuleError{Details: cc.issues[0].message}
-			mo.Score = 0
-			return mo
+			display.Println("Got an error!")
+			display.Println(cc.issues[0].message)
+			return
 		}
 	}
 
-	moduleIssues := make([]ModuleIssue, len(cc.issues))
-	for i, issue := range cc.issues {
-		mo.Score = max(0, mo.Score-issue.deduction)
-		moduleIssues[i] = ModuleIssue{Message: issue.message, ShowLineCol: false}
+	display.Println("Got an error!")
+	for _, issue := range cc.issues {
+		if int(cc.score)-int(issue.deduction) <= 0 {
+			cc.score = 0
+		} else {
+			cc.score = cc.score - uint32(issue.deduction)
+		}
+		display.Println(issue.message)
 	}
 
-	if len(mo.Message) == 1 {
-		mo.Message = append(mo.Message, moduleIssues...)
-	} else {
-		mo.Message = moduleIssues
-	}
-
-	return mo
+	display.Println(fmt.Sprintf("The final score is %d/%d.", cc.score, points))
 }
 
 // receives the commit line without the commit hash
