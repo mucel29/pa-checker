@@ -4,6 +4,8 @@ import (
 	"checker-pa/src/display"
 	"checker-pa/src/utils"
 	"encoding/xml"
+	"fmt"
+	"strconv"
 )
 
 const (
@@ -74,7 +76,55 @@ func (mc *MemoryChecker) Score() uint32 {
 }
 
 func (mc *MemoryChecker) Details(display display.Display) {
-	//implement later
+	display.PrintPage(0, "Memory checker summary\n", "")
+
+	if len(mc.issues) == 1 && mc.issues[0].isCritical {
+		display.Println("Critical error detected!")
+		display.Println(mc.issues[0].message)
+		return
+	}
+
+	if len(mc.issues) == 0 && len(mc.warnings) == 0 {
+		display.Println(
+			fmt.Sprintf("No issues found! Great job you got %d/%d :)!",
+				mc.score, mc.score))
+		return
+	}
+
+	if len(mc.issues) == 0 {
+		display.Println("Found some warnings!")
+		for _, warning := range mc.warnings {
+			errMsg := warning.file + ":" + strconv.Itoa(warning.line) + " inside " + warning.function + " "
+			errMsg += warning.message
+			display.Println(errMsg)
+		}
+
+		display.Println(
+			fmt.Sprintf("Your score is %d/%d!",
+				mc.score, utils.Config.MemoryChecker.Score))
+		return
+	}
+
+	display.Println("Found issues!")
+	for _, issue := range mc.issues {
+		errMsg := issue.file + ":" + strconv.Itoa(issue.line) + " inside " + issue.function + " "
+		errMsg += issue.message
+		display.Println(errMsg)
+	}
+
+	if len(mc.warnings) != 0 {
+		display.Println("Found some warnings!")
+		for _, warning := range mc.warnings {
+			errMsg := warning.file + ":" + strconv.Itoa(warning.line) + " inside " + warning.function + " "
+			errMsg += warning.message
+			display.Println(errMsg)
+		}
+	}
+
+	display.Println(
+		fmt.Sprintf("Your score is %d/%d!",
+			mc.score, utils.Config.MemoryChecker.Score))
+	return
 }
 
 func (mc *MemoryChecker) Run() {
@@ -123,7 +173,8 @@ func (mc *MemoryChecker) Run() {
 	if len(mc.issues) > int(mc.score) {
 		mc.score = 0
 	} else {
-		mc.score -= uint32(len(mc.issues))
+		deduction := 2
+		mc.score -= uint32(len(mc.issues)) * uint32(deduction)
 	}
 
 }

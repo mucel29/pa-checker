@@ -5,15 +5,14 @@ import (
 	"checker-pa/src/utils"
 	"errors"
 	"fmt"
-	"math"
 	"os"
 	"os/exec"
 	"strings"
 )
 
 type issue struct {
-	message   string
-	deduction int32
+	message    string
+	isCritical bool
 }
 
 type CommitChecker struct {
@@ -43,18 +42,9 @@ func (cc *CommitChecker) Score() uint32 {
 }
 
 func (cc *CommitChecker) Details(display display.Display) {
-	display.PrintPage(0, "Commit checker summary\n", "")
-
-	minCommits := utils.Config.CommitChecker.MinCommits
 	points := int32(utils.Config.CommitChecker.Score)
-	cc.score = uint32(points)
 
-	if minCommits > len(cc.commits) {
-		pointsToDeduct := 2
-		cc.score -= uint32(pointsToDeduct)
-		issueMsg := "Not enough commits have been made."
-		cc.issues = append(cc.issues, issue{message: issueMsg})
-	}
+	display.PrintPage(0, "Commit checker summary\n", "")
 
 	if len(cc.issues) == 0 {
 		display.Println("No issues found!")
@@ -65,20 +55,15 @@ func (cc *CommitChecker) Details(display display.Display) {
 	//means we have a internal error/
 	if len(cc.issues) == 1 {
 		//means we have internal error or .git doesn't exit
-		if cc.issues[0].deduction == 0 {
+		if cc.issues[0].isCritical {
 			display.Println("Got an error!")
 			display.Println(cc.issues[0].message)
 			return
 		}
 	}
 
-	display.Println("Got an error!")
+	display.Println("Detected some issues!")
 	for _, issue := range cc.issues {
-		if int(cc.score)-int(issue.deduction) <= 0 {
-			cc.score = 0
-		} else {
-			cc.score = cc.score - uint32(issue.deduction)
-		}
 		display.Println(issue.message)
 	}
 
@@ -109,7 +94,7 @@ func (cc *CommitChecker) Run() {
 	output, err := cmd.Output()
 	if err != nil {
 		if errors.Is(err, exec.ErrNotFound) {
-			issue := issue{message: ErrNotFound.Error(), deduction: math.MaxInt32}
+			issue := issue{message: ErrNotFound.Error(), isCritical: true}
 			cc.issues = append(cc.issues, issue)
 			return
 		}
@@ -117,12 +102,12 @@ func (cc *CommitChecker) Run() {
 		_, newErr := os.Stat(".git")
 		if errors.Is(newErr, os.ErrNotExist) {
 			errMsg := "Couldn't find any commits, are you sure you ran 'git init' firstly?"
-			issue := issue{message: errMsg, deduction: 0}
+			issue := issue{message: errMsg, isCritical: true}
 			cc.issues = append(cc.issues, issue)
 			return
 		}
 
-		issue := issue{message: "CRITICAL ERROR! " + err.Error(), deduction: 0}
+		issue := issue{message: "CRITICAL ERROR! " + err.Error(), isCritical: true}
 		cc.issues = append(cc.issues, issue)
 		return
 	}
@@ -139,8 +124,8 @@ func (cc *CommitChecker) Run() {
 	//sanity check, it shouldn't happen ... i hope
 	if len(lines) == 0 {
 		//maybe put something more ... non screaming
-		errMsg := "CRITICAL ERROR IN COMMIT CHECKER! #1"
-		issue := issue{message: errMsg, deduction: 0}
+		errMsg := "CRITICAL ERROR IN COMMIT CHECKER! Please make contact the team that made the checker. #1"
+		issue := issue{message: errMsg, isCritical: true}
 		cc.issues = append(cc.issues, issue)
 		return
 	}
@@ -153,8 +138,8 @@ func (cc *CommitChecker) Run() {
 
 		//this shouldn't happen but ... you never know
 		if len(splitLine) == 0 {
-			errMsg := "CRITICAL ERROR IN COMMIT CHECKER! #2"
-			issue := issue{message: errMsg, deduction: 0}
+			errMsg := "CRITICAL ERROR IN COMMIT CHECKER! Please make contact the team that made the checker. #2"
+			issue := issue{message: errMsg, isCritical: true}
 			cc.issues = append(cc.issues, issue)
 			return
 		}
@@ -164,12 +149,31 @@ func (cc *CommitChecker) Run() {
 				errMsg := "Bad commit detected: " + err.Error() + " the commit was \"" + splitLine[1] + "\"\n"
 
 				//TODO: modify deduction
-				issue := issue{message: errMsg, deduction: 1}
+				issue := issue{message: errMsg}
 				cc.issues = append(cc.issues, issue)
 				continue
 			}
 		}
 
 		cc.commits[i] = splitLine[1]
+	}
+
+	minCommits := utils.Config.CommitChecker.MinCommits
+	points := int32(utils.Config.CommitChecker.Score)
+	cc.score = uint32(points)
+
+	if minCommits > len(cc.commits) {
+		pointsToDeduct := 1
+		cc.score -= uint32(pointsToDeduct)
+		issueMsg := "Not enough commits have been made."
+		cc.issues = append(cc.issues, issue{message: issueMsg})
+	}
+
+	deduction := 2
+
+	if int32(len(cc.issues)*deduction)-int32(points) <= 0 {
+		cc.score = 0
+	} else {
+		cc.score -= uint32(len(cc.issues) * deduction)
 	}
 }
