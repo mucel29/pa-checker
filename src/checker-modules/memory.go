@@ -170,10 +170,10 @@ func (mc *MemoryChecker) Run() {
 		idx--
 	}
 
-	if len(mc.issues) > int(mc.score) {
+	deduction := 2
+	if int32(len(mc.issues)*deduction)-int32(mc.score) <= 0 {
 		mc.score = 0
 	} else {
-		deduction := 2
 		mc.score -= uint32(len(mc.issues)) * uint32(deduction)
 	}
 
