@@ -232,5 +232,77 @@ func (display *InteractiveDisplay) Stop() {
 }
 
 func (display *InteractiveDisplay) ReadLine() string {
-	return "" // TODO: Implement later
+    // For interactive display, we don't want to interrupt the app flow
+    // Just return an empty string as a fallback
+    return "1" // Default to checking the first file
+}
+
+// Add this method to support the side-by-side display
+func (display *InteractiveDisplay) NewWritableContainer(flexDirection int) *WritableContainer {
+    return NewWritableContainer(flexDirection)
+}
+
+// New method to handle file selection via keyboard
+func (display *InteractiveDisplay) SetupFileSelectionHandler(callback func(int), validFiles []int) {
+    // Create a map of valid file numbers for quick lookup
+    validFilesMap := make(map[int]bool)
+    for _, num := range validFiles {
+        validFilesMap[num] = true
+    }
+    
+    // Add an input capture handler that checks for numeric keys
+    prevHandler := display.app.GetInputCapture()
+    display.app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+        // Check if a number key was pressed
+        if event.Key() >= tcell.KeyRune && event.Key() <= tcell.KeyRune {
+            r := event.Rune()
+            if r >= '0' && r <= '9' {
+                fileNum := int(r - '0')
+                // Check if this is a valid file number
+                if validFilesMap[fileNum] {
+                    // Call the callback with the selected file number
+                    callback(fileNum)
+                    return nil // Consume the event
+                }
+            }
+        }
+        
+        // Pass the event to the previous handler
+        if prevHandler != nil {
+            return prevHandler(event)
+        }
+        return event
+    })
+}
+
+// Add this new method to allow setting custom content for a page
+func (display *InteractiveDisplay) SetCustomContent(pageIndex int, content tview.Primitive) {
+    // Ensure the page exists
+    if display.currentPage().WritableContainer == nil {
+        wc := NewWritableContainer(tview.FlexColumn)
+        display.AddWritableContainer(wc, 0, 1)
+    }
+    
+    // Clear existing sections at this index if any
+    if pageIndex < len(display.pageStack.Page().WritableContainer.Sections) {
+        display.pageStack.Page().WritableContainer.Container.RemoveItem(
+            display.pageStack.Page().WritableContainer.Sections[pageIndex])
+    }
+    
+    // Create a new page element for the custom content
+    element := &PageElement{
+        Element:    content,
+        Proportion: 1,
+        Focused:    true,
+    }
+    
+    // Replace or add the element to the page
+    if pageIndex < len(display.pageStack.Page().Elements) {
+        display.pageStack.Page().Elements[pageIndex] = element
+    } else {
+        display.AddElement(element)
+    }
+    
+    // Update the display
+    display.UpdateDisplay()
 }
