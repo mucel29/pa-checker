@@ -2,10 +2,11 @@ package display
 
 import (
 	"fmt"
-	"github.com/gdamore/tcell/v2"
-	"github.com/rivo/tview"
 	"os"
 	"strconv"
+
+	"github.com/gdamore/tcell/v2"
+	"github.com/rivo/tview"
 )
 
 type PageStack []Page
@@ -228,4 +229,8 @@ func (display *InteractiveDisplay) AddWritableContainer(container *WritableConta
 func (display *InteractiveDisplay) Stop() {
 	display.app.Stop()
 	os.Exit(0)
+}
+
+func (display *InteractiveDisplay) ReadLine() string {
+	return "" // TODO: Implement later
 }

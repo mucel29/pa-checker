@@ -5,4 +5,5 @@ type Display interface {
 	Print(buffer string)
 	Println(buffer string)
 	PrintPage(index int, title string, buffer string)
+	ReadLine() string
 }
