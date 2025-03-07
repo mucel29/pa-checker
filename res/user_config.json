@@ -1,8 +1,6 @@
-// EXAMPLE USER SETTINGS CONFIG
-
 {
     "source_path": "./temp/tema/",
     "executable_path": "./a.out",
-    "output_path": "./out",
-    "ref_path": "./ref"
+    "output_path": "./temp/OutputData",
+    "ref_path": "./temp/LastRef"
 }

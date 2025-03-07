@@ -23,3 +23,9 @@ func (display *BasicDisplay) PrintPage(index int, title string, buffer string) {
 	fmt.Println(buffer)
 	//slog.Warn("BasicDisplay does not support paging")
 }
+
+func (display *BasicDisplay) ReadLine() string {
+	var input string
+	fmt.Scanln(&input)
+	return input
+}
