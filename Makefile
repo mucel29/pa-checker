@@ -40,6 +40,9 @@ lint:
 staticcheck:
 	staticcheck $(PKGS)
 
+deploy:
+	GOOS=$(OS) GOARCH=$(ARCH) go build -o $(BIN_NAME) ./main.go
+
 # Generic build function
 build:
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o $(BIN_DIR)/$(BINARY_NAME)$(BINARY_EXTENSION) ./main.go
