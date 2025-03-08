@@ -7,6 +7,7 @@ stages:
   - format
   - lint
   - build
+  - release
 
 format:
   timeout: 5min
