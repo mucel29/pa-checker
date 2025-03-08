@@ -11,31 +11,31 @@ type ModuleIssue struct {
 	Col         uint32
 	Message     string
 	ShowLineCol bool
+	Critical    bool
 }
 
 type ModuleError struct {
-	Details string
-	Issues  []ModuleIssue
+	ErrorMessage string
+	Issues       []ModuleIssue
 }
 
 type ModuleOutput struct {
-	Score   int32
-	Error   *ModuleError
-	Message []ModuleIssue
+	Score int32
+	ModuleError
 }
 
 type CheckerModule interface {
 	GetName() string
 	WaitingFor() []string
 	Run()
-	// Details Print to the given output adapter
-	Details(display display.Display)
+	Display(d *display.Display)
+	Dump()
 	Reset()
 	Score() uint32
 }
 
 func (err *ModuleError) String() string {
-	message := err.Details + "\n"
+	message := err.ErrorMessage + "\n"
 
 	for _, issue := range err.Issues {
 		message += "\n"

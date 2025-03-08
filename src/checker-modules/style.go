@@ -16,7 +16,7 @@ import (
 )
 
 type StyleChecker struct {
-	issues     []ModuleIssue
+	ModuleOutput
 	totalScore int32
 }
 
@@ -28,23 +28,29 @@ func (sc *StyleChecker) WaitingFor() []string {
 	return []string{} // No dependencies
 }
 
-func (sc *StyleChecker) Details(display display.Display) {
+func (sc *StyleChecker) Display(d *display.Display) {
 	// Display module summary
-	display.PrintPage(0, "Style checker Summary\n", "")
-	display.Println("\nTotal module score: " + fmt.Sprint(sc.totalScore) + "\n")
+	d.PrintPage(0, "Style checker Summary\n", "")
+	d.Println("\nTotal module score: " + fmt.Sprint(sc.totalScore) + "\n")
 
 	// Display errors
-	if len(sc.issues) > 0 {
+	if len(sc.Issues) > 0 {
 		err := ModuleError{
-			Details: "Style issues found in the code",
-			Issues:  sc.issues,
+			ErrorMessage: "Style issues found in the code",
+			Issues:       sc.Issues,
 		}
-		display.PrintPage(1, "Style checker errors\n", err.String())
+		d.PrintPage(1, "Style checker errors\n", err.String())
 	}
 }
 
+func (sc *StyleChecker) Dump() {
+	fmt.Printf("===== Style Checker - %d =====\n\n", sc.totalScore)
+	fmt.Println(sc.ModuleError.String())
+	fmt.Println()
+}
+
 func (sc *StyleChecker) Reset() {
-	sc.issues = nil
+	sc.Issues = nil
 	sc.totalScore = 0
 }
 
@@ -59,7 +65,7 @@ func (sc *StyleChecker) Score() uint32 {
 func (sc *StyleChecker) Run() {
 	// Check if cppcheck is installed
 	if _, err := exec.LookPath("cppcheck"); err != nil {
-		sc.issues = append(sc.issues, ModuleIssue{
+		sc.Issues = append(sc.Issues, ModuleIssue{
 			Message:     "cppcheck is not installed",
 			Line:        0,
 			Col:         0,
@@ -88,7 +94,7 @@ func (sc *StyleChecker) Run() {
 	cmd.Stderr = &stderr
 
 	if err := cmd.Run(); err != nil {
-		sc.issues = append(sc.issues, ModuleIssue{
+		sc.Issues = append(sc.Issues, ModuleIssue{
 			Message: fmt.Sprintf("cppcheck execution failed: %v\n%s", err, stdout.String()),
 			// stdout contains the error message
 			Line:        0,
@@ -101,7 +107,7 @@ func (sc *StyleChecker) Run() {
 
 	var results utils.CppcheckResults
 	if err := xml.Unmarshal(stderr.Bytes(), &results); err != nil {
-		sc.issues = append(sc.issues, ModuleIssue{
+		sc.Issues = append(sc.Issues, ModuleIssue{
 			File:        "",
 			Message:     fmt.Sprintf("Failed to parse cppcheck output: %v", err),
 			Line:        0,
@@ -136,7 +142,7 @@ func (sc *StyleChecker) Run() {
 					lineWithPointer)
 			}
 
-			sc.issues = append(sc.issues, ModuleIssue{
+			sc.Issues = append(sc.Issues, ModuleIssue{
 				File:        loc.File,
 				Line:        uint32(loc.Line),
 				Col:         uint32(loc.Column),
@@ -155,7 +161,7 @@ func (sc *StyleChecker) Run() {
 // also these should be configurable in the config file
 func (sc *StyleChecker) calculateScore() {
 	baseScore := int32(100)
-	deduction := int32(len(sc.issues) * 5) // Deduct 5 points per issue
+	deduction := int32(len(sc.Issues) * 5) // Deduct 5 points per issue
 	sc.totalScore = int32(math.Max(0, float64(baseScore-deduction)))
 }
 

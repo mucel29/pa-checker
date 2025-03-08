@@ -1,6 +1,6 @@
 module checker-pa
 
-go 1.24
+go 1.24.0
 
 require (
 	github.com/sergi/go-diff v1.3.1

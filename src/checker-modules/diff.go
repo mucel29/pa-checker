@@ -7,25 +7,22 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
-
 type DiffModule struct {
-	issues      []ModuleIssue
-	totalScore  uint32
-	uniqueName  string
-	results     map[string]FileCompareResult
-	matchCount  int
-	totalFiles  int
+	ModuleOutput
+	totalScore uint32
+	uniqueName string
+	results    map[string]FileCompareResult
+	matchCount int
+	totalFiles int
 }
 
 func NewDiffModule() *DiffModule {
 	return &DiffModule{
-		issues:     make([]ModuleIssue, 0),
 		totalScore: 0,
 		uniqueName: "diff_checker",
 		results:    make(map[string]FileCompareResult),
@@ -46,23 +43,23 @@ func (dm *DiffModule) Run() {
 	folder2 := config.OutputPath
 
 	numFiles, err := countFilesInFolder(folder1)
-	if (err != nil) {
-		dm.issues = append(dm.issues, ModuleIssue{
+	if err != nil {
+		dm.Issues = append(dm.Issues, ModuleIssue{
 			Message: "Error counting files: " + err.Error(),
 		})
 		return
 	}
 
 	if numFiles == 0 {
-		dm.issues = append(dm.issues, ModuleIssue{
+		dm.Issues = append(dm.Issues, ModuleIssue{
 			Message: "No files found in reference folder",
 		})
 		return
 	}
 
 	matchedCount, results, err := compareFilesInFolders(folder1, folder2, numFiles)
-	if (err != nil) {
-		dm.issues = append(dm.issues, ModuleIssue{
+	if err != nil {
+		dm.Issues = append(dm.Issues, ModuleIssue{
 			Message: "Error comparing files: " + err.Error(),
 		})
 		return
@@ -77,216 +74,220 @@ func (dm *DiffModule) Run() {
 
 	// Add issues for mismatched files
 	for fileName, result := range results {
-		if (!result.matched) {
-			dm.issues = append(dm.issues, ModuleIssue{
+		if !result.matched {
+			dm.Issues = append(dm.Issues, ModuleIssue{
 				Message: fmt.Sprintf("File %s has differences", fileName),
 			})
 		}
 	}
 }
 
-func (dm *DiffModule) Details(display display.Display) {
-    // First page: Main summary
-    display.PrintPage(0, dm.uniqueName, "")
-    display.Println(fmt.Sprintf("\nMatched files: %d/%d", dm.matchCount, dm.totalFiles))
-    display.Println(fmt.Sprintf("Score: %d/100", dm.totalScore))
-    
-    if len(dm.issues) > 0 {
-        // Second page: List of files with errors (selection menu)
-        display.PrintPage(1, dm.uniqueName+" errors", "")
-        display.Println("\nIncorrect files (select one to view differences):")
-        display.Println("-----------------------------------------------")
-        
-        incorrectFiles := make([]int, 0)
-        
-        for fileName, result := range dm.results {
-            if (!result.matched) {
-                fileNum := 0
-                fmt.Sscanf(fileName, "data%d.out", &fileNum)
-                incorrectFiles = append(incorrectFiles, fileNum)
-            }
-        }
-        
-        if len(incorrectFiles) == 0 {
-            display.Println("None - all files are correct!")
-            return
-        }
-        
-        // Sort numbers for better readability
-        sort.Ints(incorrectFiles)
-        
-        // Print the list of files
-        for _, num := range incorrectFiles {
-            // In interactive mode, we'll make this section more visible
-            if display.IsInteractive() {
-                // Make the entries stand out
-                display.Println(fmt.Sprintf("● [yellow]data%d.out[white] (press %d in main tab to view this file)", num, num))
-            } else {
-                display.Println(fmt.Sprintf("- data%d.out", num))
-            }
-        }
-        
-        if display.IsInteractive() {
-            // For interactive mode, create separate reference and output blocks
-            // Setup the reference section
-            display.PrintPage(2, "Reference", "")
-            
-            // Setup the output section
-            display.PrintPage(3, "Output", "")
-            
-            // Start with the first incorrect file for demonstration
-            if len(incorrectFiles) > 0 {
-                fileNum := incorrectFiles[0]
-                fileName := fmt.Sprintf("data%d.out", fileNum)
-                
-                if result, exists := dm.results[fileName]; exists && !result.matched {
-                    // Clear and update the comparison sections
-                    updateComparisonDisplay(display, fileName, result)
-                }
-            }
-            
-            // Since the keyboard navigation is not fully implemented, show instructions for now
-            display.Println("\nCurrently displaying the first incorrect file.")
-            
-            // Comment this section out for now until fully implemented
-            /*
-            // Set up keyboard handlers for numbers to select files
-            if interactiveDisplay, ok := display.(*display.InteractiveDisplay); ok {
-                interactiveDisplay.SetupFileSelectionHandler(func(fileNum int) {
-                    fileName := fmt.Sprintf("data%d.out", fileNum)
-                    if result, exists := dm.results[fileName]; exists && !result.matched {
-                        updateComparisonDisplay(display, fileName, result)
-                    }
-                }, incorrectFiles)
-            }
-            */
-        } else {
-            // Basic mode remains unchanged
-            for {
-                display.Println("\nWhich file would you like to check? (Enter a number or 'q' to quit): ")
-                input := display.ReadLine()
-                
-                // Check if user wants to quit
-                if input == "q" || input == "Q" || input == "quit" || input == "exit" {
-                    break
-                }
-                
-                fileNum, err := strconv.Atoi(input)
-                if err != nil || fileNum < 1 || fileNum > dm.totalFiles {
-                    display.Println("Invalid file number. Please try again.")
-                    continue
-                }
-                
-                fileName := fmt.Sprintf("data%d.out", fileNum)
-                if result, exists := dm.results[fileName]; exists {
-                    display.Println(fmt.Sprintf("\n=== %s ===\n", fileName))
-                    
-                    if result.matched {
-                        display.Println("Files are identical\n")
-                    } else {
-                        // Show inline differences (type 1)
-                        for _, diff := range result.diffs {
-                            switch diff.Type {
-                            case diffmatchpatch.DiffInsert:
-                                display.Print(fmt.Sprintf("\033[32m%s\033[0m", diff.Text))
-                            case diffmatchpatch.DiffDelete:
-                                display.Print(fmt.Sprintf("\033[31m%s\033[0m", diff.Text))
-                            case diffmatchpatch.DiffEqual:
-                                display.Print(diff.Text)
-                            }
-                        }
-                        display.Println("\n")
-                    }
-                } else {
-                    display.Println(fmt.Sprintf("File %s not found", fileName))
-                }
-            }
-        }
-    } else {
-        display.Println("\nSUCCESS! - All files match!")
-    }
+func (dm *DiffModule) Display(d *display.Display) {
+	// First page: Main summary
+	d.PrintPage(0, dm.uniqueName, "")
+	d.Println(fmt.Sprintf("\nMatched files: %d/%d", dm.matchCount, dm.totalFiles))
+	d.Println(fmt.Sprintf("Score: %d/100", dm.totalScore))
+
+	if len(dm.Issues) > 0 {
+		// Second page: List of files with errors (selection menu)
+		d.PrintPage(1, dm.uniqueName+" errors", "")
+		d.Println("\nIncorrect files (select one to view differences):")
+		d.Println("-----------------------------------------------")
+
+		incorrectFiles := make([]int, 0)
+
+		for fileName, result := range dm.results {
+			if !result.matched {
+				fileNum := 0
+				fmt.Sscanf(fileName, "data%d.out", &fileNum)
+				incorrectFiles = append(incorrectFiles, fileNum)
+			}
+		}
+
+		if len(incorrectFiles) == 0 {
+			d.Println("None - all files are correct!")
+			return
+		}
+
+		// Sort numbers for better readability
+		sort.Ints(incorrectFiles)
+
+		// Print the list of files
+		for _, num := range incorrectFiles {
+			// In interactive mode, we'll make this section more visible
+			// Make the entries stand out
+			d.Println(fmt.Sprintf("● [yellow]data%d.out[white] (press %d in main tab to view this file)", num, num))
+
+		}
+
+		// For interactive mode, create separate reference and output blocks
+		// Setup the reference section
+		//d.PrintPage(2, "Reference", "")
+
+		// Setup the output section
+		//d.PrintPage(3, "Output", "")
+
+		// TODO: rewrite
+
+		// Start with the first incorrect file for demonstration
+		//if len(incorrectFiles) > 0 {
+		//	fileNum := incorrectFiles[0]
+		//	fileName := fmt.Sprintf("data%d.out", fileNum)
+		//
+		//	//if result, exists := dm.results[fileName]; exists && !result.matched {
+		//	//	// Clear and update the comparison sections
+		//	//	updateComparisonDisplay(d, fileName, result)
+		//	//}
+		//}
+
+		// Since the keyboard navigation is not fully implemented, show instructions for now
+		d.Println("\nCurrently displaying the first incorrect file.")
+
+		// Comment this section out for now until fully implemented
+		/*
+		   // Set up keyboard handlers for numbers to select files
+		   if interactiveDisplay, ok := d.(*d.Display); ok {
+		       interactiveDisplay.SetupFileSelectionHandler(func(fileNum int) {
+		           fileName := fmt.Sprintf("data%d.out", fileNum)
+		           if result, exists := dm.results[fileName]; exists && !result.matched {
+		               updateComparisonDisplay(d, fileName, result)
+		           }
+		       }, incorrectFiles)
+		   }
+		*/
+		//} else {
+		//	// Basic mode remains unchanged
+		//	for {
+		//		d.Println("\nWhich file would you like to check? (Enter a number or 'q' to quit): ")
+		//		input := d.ReadLine()
+		//
+		//		// Check if user wants to quit
+		//		if input == "q" || input == "Q" || input == "quit" || input == "exit" {
+		//			break
+		//		}
+		//
+		//		fileNum, err := strconv.Atoi(input)
+		//		if err != nil || fileNum < 1 || fileNum > dm.totalFiles {
+		//			d.Println("Invalid file number. Please try again.")
+		//			continue
+		//		}
+		//
+		//		fileName := fmt.Sprintf("data%d.out", fileNum)
+		//		if result, exists := dm.results[fileName]; exists {
+		//			d.Println(fmt.Sprintf("\n=== %s ===\n", fileName))
+		//
+		//			if result.matched {
+		//				d.Println("Files are identical\n")
+		//			} else {
+		//				// Show inline differences (type 1)
+		//				for _, diff := range result.diffs {
+		//					switch diff.Type {
+		//					case diffmatchpatch.DiffInsert:
+		//						d.Print(fmt.Sprintf("\033[32m%s\033[0m", diff.Text))
+		//					case diffmatchpatch.DiffDelete:
+		//						d.Print(fmt.Sprintf("\033[31m%s\033[0m", diff.Text))
+		//					case diffmatchpatch.DiffEqual:
+		//						d.Print(diff.Text)
+		//					}
+		//				}
+		//				d.Println("\n")
+		//			}
+		//		} else {
+		//			d.Println(fmt.Sprintf("File %s not found", fileName))
+		//		}
+		//	}
+		//}
+	} else {
+		d.Println("\nSUCCESS! - All files match!")
+	}
+}
+
+func (dm *DiffModule) Dump() {
+	fmt.Printf("===== %s - %d =====\n\n", dm.uniqueName, dm.totalScore)
+	fmt.Println(dm.ModuleError.String())
+	fmt.Println()
 }
 
 // Helper function to update the comparison display with new file content
 func updateComparisonDisplay(display display.Display, fileName string, result FileCompareResult) {
-    // Show file being viewed in both sections
-    display.PrintPage(2, fmt.Sprintf("Reference - %s", fileName), "")
-    display.PrintPage(3, fmt.Sprintf("Output - %s", fileName), "")
-    
-    // Prepare the reference section content
-    var refContent string
-    refContent = "[::b]Reference content for " + fileName + ":[white]\n"
-    refContent += "------------------------------\n\n"
-    
-    for _, line := range result.formattedOutput.reference {
-        if line != "" {
-            refContent += line + "\n"
-        } else {
-            refContent += "\n"
-        }
-    }
-    
-    // Prepare the output section content
-    var outContent string
-    outContent = "[::b]Output content for " + fileName + ":[white]\n"
-    outContent += "------------------------------\n\n"
-    
-    for _, line := range result.formattedOutput.output {
-        if line != "" {
-            outContent += line + "\n"
-        } else {
-            outContent += "\n"
-        }
-    }
-    
-    // Update each section with its content
-    display.PrintPage(2, fmt.Sprintf("Reference - %s", fileName), refContent)
-    display.PrintPage(3, fmt.Sprintf("Output - %s", fileName), outContent)
+	// Show file being viewed in both sections
+	display.PrintPage(2, fmt.Sprintf("Reference - %s", fileName), "")
+	display.PrintPage(3, fmt.Sprintf("Output - %s", fileName), "")
+
+	// Prepare the reference section content
+	var refContent string
+	refContent = "[::b]Reference content for " + fileName + ":[white]\n"
+	refContent += "------------------------------\n\n"
+
+	for _, line := range result.formattedOutput.reference {
+		if line != "" {
+			refContent += line + "\n"
+		} else {
+			refContent += "\n"
+		}
+	}
+
+	// Prepare the output section content
+	var outContent string
+	outContent = "[::b]Output content for " + fileName + ":[white]\n"
+	outContent += "------------------------------\n\n"
+
+	for _, line := range result.formattedOutput.output {
+		if line != "" {
+			outContent += line + "\n"
+		} else {
+			outContent += "\n"
+		}
+	}
+
+	// Update each section with its content
+	display.PrintPage(2, fmt.Sprintf("Reference - %s", fileName), refContent)
+	display.PrintPage(3, fmt.Sprintf("Output - %s", fileName), outContent)
 }
 
-// Helper function to show side-by-side comparison (not needed anymore but kept for non-interactive mode)
-func showSideBySideComparison(display display.Display, result FileCompareResult) {
-    if (!display.IsInteractive()) {
-        // For non-interactive display, use the existing implementation
-        var referenceText, outputText string
-        
-        referenceText = "Reference:\n"
-        referenceText += "-----------------\n"
-        
-        outputText = "Output:\n"
-        outputText += "-----------------\n"
-        
-        refLines := result.formattedOutput.reference
-        outLines := result.formattedOutput.output
-        maxLen := len(refLines)
-        if (len(outLines) > maxLen) {
-            maxLen = len(outLines)
-        }
-        
-        for i := 0; i < maxLen; i++ {
-            if (i < len(refLines) && refLines[i] != "") {
-                referenceText += refLines[i] + "\n"
-            } else {
-                referenceText += "\n"
-            }
-            
-            if (i < len(outLines) && outLines[i] != "") {
-                outputText += outLines[i] + "\n"
-            } else {
-                outputText += "\n"
-            }
-        }
-        
-        // Display the sections one after another for basic display
-        display.Println(referenceText)
-        display.Println(outputText)
-    }
-    // For interactive mode, we now use updateComparisonDisplay instead
-}
+//// Helper function to show side-by-side comparison (not needed anymore but kept for non-interactive mode)
+//func showSideBySideComparison(display display.Display, result FileCompareResult) {
+//	if !display.IsInteractive() {
+//		// For non-interactive display, use the existing implementation
+//		var referenceText, outputText string
+//
+//		referenceText = "Reference:\n"
+//		referenceText += "-----------------\n"
+//
+//		outputText = "Output:\n"
+//		outputText += "-----------------\n"
+//
+//		refLines := result.formattedOutput.reference
+//		outLines := result.formattedOutput.output
+//		maxLen := len(refLines)
+//		if len(outLines) > maxLen {
+//			maxLen = len(outLines)
+//		}
+//
+//		for i := 0; i < maxLen; i++ {
+//			if i < len(refLines) && refLines[i] != "" {
+//				referenceText += refLines[i] + "\n"
+//			} else {
+//				referenceText += "\n"
+//			}
+//
+//			if i < len(outLines) && outLines[i] != "" {
+//				outputText += outLines[i] + "\n"
+//			} else {
+//				outputText += "\n"
+//			}
+//		}
+//
+//		// Display the sections one after another for basic display
+//		display.Println(referenceText)
+//		display.Println(outputText)
+//	}
+//	// For interactive mode, we now use updateComparisonDisplay instead
+//}
 
 func (dm *DiffModule) Reset() {
 	dm.totalScore = 0
-	dm.issues = nil
+	dm.Issues = nil
 	dm.results = make(map[string]FileCompareResult)
 	dm.matchCount = 0
 	dm.totalFiles = 0
@@ -404,7 +405,7 @@ func showDifferences(fileName string, result FileCompareResult, displayType int)
 				fmt.Println(line)
 			}
 		}
-		
+
 		fmt.Println("\nOutput:")
 		fmt.Println("-------")
 		for _, line := range result.formattedOutput.output {
@@ -417,42 +418,42 @@ func showDifferences(fileName string, result FileCompareResult, displayType int)
 }
 
 func countFilesInFolder(folder string) (int, error) {
-    pattern := filepath.Join(folder, "data*.out")
-    matches, err := filepath.Glob(pattern)
-    if err != nil {
-        return 0, fmt.Errorf("error counting files: %w", err)
-    }
-    return len(matches), nil
+	pattern := filepath.Join(folder, "data*.out")
+	matches, err := filepath.Glob(pattern)
+	if err != nil {
+		return 0, fmt.Errorf("error counting files: %w", err)
+	}
+	return len(matches), nil
 }
 
 func showIncorrectFiles(results map[string]FileCompareResult) {
-    fmt.Println("\nIncorrect files:")
-    fmt.Println("---------------")
-    hasIncorrect := false
-    
-    // Sort the files numerically
-    incorrectFiles := make([]int, 0)
-    for fileName, result := range results {
-        if (!result.matched) {
-            fileNum := 0
-            fmt.Sscanf(fileName, "data%d.out", &fileNum)
-            incorrectFiles = append(incorrectFiles, fileNum)
-            hasIncorrect = true
-        }
-    }
-    
-    if (!hasIncorrect) {
-        fmt.Println("None - all files are correct!")
-        return
-    }
+	fmt.Println("\nIncorrect files:")
+	fmt.Println("---------------")
+	hasIncorrect := false
 
-    // Sort numbers for better readability
-    sort.Ints(incorrectFiles)
-    
-    // Print in a clean format
-    for _, num := range incorrectFiles {
-        fmt.Printf("- data%d.out\n", num)
-    }
-    
-    fmt.Println()
+	// Sort the files numerically
+	incorrectFiles := make([]int, 0)
+	for fileName, result := range results {
+		if !result.matched {
+			fileNum := 0
+			fmt.Sscanf(fileName, "data%d.out", &fileNum)
+			incorrectFiles = append(incorrectFiles, fileNum)
+			hasIncorrect = true
+		}
+	}
+
+	if !hasIncorrect {
+		fmt.Println("None - all files are correct!")
+		return
+	}
+
+	// Sort numbers for better readability
+	sort.Ints(incorrectFiles)
+
+	// Print in a clean format
+	for _, num := range incorrectFiles {
+		fmt.Printf("- data%d.out\n", num)
+	}
+
+	fmt.Println()
 }
