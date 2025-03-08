@@ -32,7 +32,7 @@ fmt:
 	gofmt -s -l -w $(PKGS)
 
 vet:
-	go vet $(PKGS)
+	go vet ./...
 
 lint:
 	golangci-lint run -c .golangci.yml $(PKGS)

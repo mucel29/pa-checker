@@ -36,36 +36,34 @@ func main() {
 
 	m.Run()
 
-	var d display.Display
 	if *useInteractive {
 
 		utils.Log("Interactive Display")
-		iDisplay := display.NewInteractiveDisplay()
-		d = iDisplay
+		d := display.NewInteractiveDisplay()
 
 		checkerButton := tview.NewButton("Checker").SetSelectedFunc(func() {
-			iDisplay.NewPage("Checker")
+			d.NewPage("Checker")
 
 			refButton := tview.NewButton("Ref checker").SetSelectedFunc(func() {
-				iDisplay.NewPage("Ref checker")
-				iDisplay.AddWritableContainer(display.NewWritableContainer(tview.FlexRow), 0, 1)
-				checkermodules.AvailableModules["ref_checker"].Details(d)
+				d.NewPage("Ref checker")
+				d.AddWritableContainer(display.NewWritableContainer(tview.FlexRow), 0, 1)
+				checkermodules.AvailableModules["ref_checker"].Display(d)
 			})
 			memoryButton := tview.NewButton("Memory checker").SetSelectedFunc(func() {
-				iDisplay.NewPage("Memory checker")
-				iDisplay.AddWritableContainer(display.NewWritableContainer(tview.FlexRow), 0, 1)
-				checkermodules.AvailableModules["memory_checker"].Details(d)
+				d.NewPage("Memory checker")
+				d.AddWritableContainer(display.NewWritableContainer(tview.FlexRow), 0, 1)
+				checkermodules.AvailableModules["memory_checker"].Display(d)
 			})
 			commitButton := tview.NewButton("Commit checker").SetSelectedFunc(func() {
-				iDisplay.NewPage("Commit checker")
-				iDisplay.AddWritableContainer(display.NewWritableContainer(tview.FlexRow), 0, 1)
-				checkermodules.AvailableModules["commit_checker"].Details(d)
+				d.NewPage("Commit checker")
+				d.AddWritableContainer(display.NewWritableContainer(tview.FlexRow), 0, 1)
+				checkermodules.AvailableModules["commit_checker"].Display(d)
 			})
 
 			styleButton := tview.NewButton("Style checker").SetSelectedFunc(func() {
-				iDisplay.NewPage("Style checker")
-				iDisplay.AddWritableContainer(display.NewWritableContainer(tview.FlexRow), 0, 1)
-				checkermodules.AvailableModules["style_checker"].Details(d)
+				d.NewPage("Style checker")
+				d.AddWritableContainer(display.NewWritableContainer(tview.FlexRow), 0, 1)
+				checkermodules.AvailableModules["style_checker"].Display(d)
 			})
 
 			buttonContainer := tview.NewFlex().SetDirection(tview.FlexRow)
@@ -75,14 +73,14 @@ func main() {
 				AddItem(memoryButton, 0, 1, false).
 				AddItem(commitButton, 0, 1, false)
 
-			iDisplay.AddElement(&display.PageElement{Element: buttonContainer, Proportion: 1})
+			d.AddElement(&display.PageElement{Element: buttonContainer, Proportion: 1})
 
-			iDisplay.UpdateDisplay()
+			d.UpdateDisplay()
 
 		})
 
 		optionsButton := tview.NewButton("Options").SetSelectedFunc(func() {
-			iDisplay.NewPage("Options")
+			d.NewPage("Options")
 
 			form := tview.NewForm()
 			form.AddInputField("Source Path", utils.Config.SourcePath, 0, nil, nil)
@@ -91,8 +89,8 @@ func main() {
 
 			// TODO: change config settings when going back
 
-			iDisplay.AddElement(&display.PageElement{Element: form, Proportion: 1})
-			iDisplay.UpdateDisplay()
+			d.AddElement(&display.PageElement{Element: form, Proportion: 1})
+			d.UpdateDisplay()
 		})
 
 		mainContainer := tview.NewFlex().SetDirection(tview.FlexRow)
@@ -101,20 +99,20 @@ func main() {
 			AddItem(optionsButton, 0, 1, false).
 			AddItem(tview.NewBox(), 0, 7, false)
 
-		iDisplay.AddElement(&display.PageElement{Element: mainContainer, Proportion: 1})
+		d.AddElement(&display.PageElement{Element: mainContainer, Proportion: 1})
 
-		iDisplay.UpdateDisplay()
+		d.UpdateDisplay()
+
+		d.Enable()
 
 	} else {
-		d = &display.BasicDisplay{}
 		utils.Log("Basic Display")
 
 		for _, module := range m.Modules {
-			module.Details(d)
+			module.Dump()
 		}
 
 	}
 
-	d.Enable()
 	wg.Wait()
 }
