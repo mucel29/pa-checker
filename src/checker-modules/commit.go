@@ -10,13 +10,8 @@ import (
 	"strings"
 )
 
-type issue struct {
-	message    string
-	isCritical bool
-}
-
 type CommitChecker struct {
-	issues  []issue
+	ModuleOutput
 	commits []string
 	score   uint32
 }
@@ -33,7 +28,7 @@ func (*CommitChecker) WaitingFor() []string {
 
 func (cc *CommitChecker) Reset() {
 	cc.commits = nil
-	cc.issues = nil
+	cc.Issues = nil
 	cc.score = 0
 }
 
@@ -41,33 +36,39 @@ func (cc *CommitChecker) Score() uint32 {
 	return cc.score
 }
 
-func (cc *CommitChecker) Details(display display.Display) {
+func (cc *CommitChecker) Display(d *display.Display) {
 	points := int32(utils.Config.CommitChecker.Score)
 
-	display.PrintPage(0, "Commit checker summary\n", "")
+	d.PrintPage(0, "Commit checker summary\n", "")
 
-	if len(cc.issues) == 0 {
-		display.Println("No issues found!")
-		display.Println(fmt.Sprintf("Got %d/%d points! Congrats :)", points, points))
+	if len(cc.Issues) == 0 {
+		d.Println("No issues found!")
+		d.Println(fmt.Sprintf("Got %d/%d points! Congrats :)", points, points))
 		return
 	}
 
 	//means we have a internal error/
-	if len(cc.issues) == 1 {
+	if len(cc.Issues) == 1 {
 		//means we have internal error or .git doesn't exit
-		if cc.issues[0].isCritical {
-			display.Println("Got an error!")
-			display.Println(cc.issues[0].message)
+		if cc.Issues[0].Critical {
+			d.Println("Got an error!")
+			d.Println(cc.Issues[0].Message)
 			return
 		}
 	}
 
-	display.Println("Detected some issues!")
-	for _, issue := range cc.issues {
-		display.Println(issue.message)
+	d.Println("Detected some issues!")
+	for _, issue := range cc.Issues {
+		d.Println(issue.Message)
 	}
 
-	display.Println(fmt.Sprintf("The final score is %d/%d.", cc.score, points))
+	d.Println(fmt.Sprintf("The final score is %d/%d.", cc.score, points))
+}
+
+func (cc *CommitChecker) Dump() {
+	fmt.Printf("===== Commit checker - %d =====\n\n", cc.score)
+	fmt.Println(cc.ModuleError.String())
+	fmt.Println()
 }
 
 // receives the commit line without the commit hash
@@ -94,28 +95,28 @@ func (cc *CommitChecker) Run() {
 	output, err := cmd.Output()
 	if err != nil {
 		if errors.Is(err, exec.ErrNotFound) {
-			issue := issue{message: ErrNotFound.Error(), isCritical: true}
-			cc.issues = append(cc.issues, issue)
+			issue := ModuleIssue{Message: ErrNotFound.Error(), Critical: true}
+			cc.Issues = append(cc.Issues, issue)
 			return
 		}
 		//if the student didn't "git init" before, this will give an ambiguous error
 		_, newErr := os.Stat(".git")
 		if errors.Is(newErr, os.ErrNotExist) {
 			errMsg := "Couldn't find any commits, are you sure you ran 'git init' firstly?"
-			issue := issue{message: errMsg, isCritical: true}
-			cc.issues = append(cc.issues, issue)
+			issue := ModuleIssue{Message: errMsg, Critical: true}
+			cc.Issues = append(cc.Issues, issue)
 			return
 		}
 
-		issue := issue{message: "CRITICAL ERROR! " + err.Error(), isCritical: true}
-		cc.issues = append(cc.issues, issue)
+		issue := ModuleIssue{Message: "CRITICAL ERROR! " + err.Error(), Critical: true}
+		cc.Issues = append(cc.Issues, issue)
 		return
 	}
 
 	if len(output) == 0 {
 		errMsg := "The checker couldn't find any commits!"
-		issue := issue{message: errMsg}
-		cc.issues = append(cc.issues, issue)
+		issue := ModuleIssue{Message: errMsg}
+		cc.Issues = append(cc.Issues, issue)
 		return
 	}
 
@@ -125,8 +126,8 @@ func (cc *CommitChecker) Run() {
 	if len(lines) == 0 {
 		//maybe put something more ... non screaming
 		errMsg := "CRITICAL ERROR IN COMMIT CHECKER! Please make contact the team that made the checker. #1"
-		issue := issue{message: errMsg, isCritical: true}
-		cc.issues = append(cc.issues, issue)
+		issue := ModuleIssue{Message: errMsg, Critical: true}
+		cc.Issues = append(cc.Issues, issue)
 		return
 	}
 
@@ -139,8 +140,8 @@ func (cc *CommitChecker) Run() {
 		//this shouldn't happen but ... you never know
 		if len(splitLine) == 0 {
 			errMsg := "CRITICAL ERROR IN COMMIT CHECKER! Please make contact the team that made the checker. #2"
-			issue := issue{message: errMsg, isCritical: true}
-			cc.issues = append(cc.issues, issue)
+			issue := ModuleIssue{Message: errMsg, Critical: true}
+			cc.Issues = append(cc.Issues, issue)
 			return
 		}
 		if utils.Config.CommitChecker.UseFormat {
@@ -149,8 +150,8 @@ func (cc *CommitChecker) Run() {
 				errMsg := "Bad commit detected: " + err.Error() + " the commit was \"" + splitLine[1] + "\"\n"
 
 				//TODO: modify deduction
-				issue := issue{message: errMsg}
-				cc.issues = append(cc.issues, issue)
+				issue := ModuleIssue{Message: errMsg}
+				cc.Issues = append(cc.Issues, issue)
 				continue
 			}
 		}
@@ -166,14 +167,14 @@ func (cc *CommitChecker) Run() {
 		pointsToDeduct := 1
 		cc.score -= uint32(pointsToDeduct)
 		issueMsg := "Not enough commits have been made."
-		cc.issues = append(cc.issues, issue{message: issueMsg})
+		cc.Issues = append(cc.Issues, ModuleIssue{Message: issueMsg})
 	}
 
 	deduction := 2
 
-	if points-int32(len(cc.issues)*deduction) <= 0 {
+	if points-int32(len(cc.Issues)*deduction) <= 0 {
 		cc.score = 0
 	} else {
-		cc.score -= uint32(len(cc.issues) * deduction)
+		cc.score -= uint32(len(cc.Issues) * deduction)
 	}
 }

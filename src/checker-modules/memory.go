@@ -5,7 +5,9 @@ import (
 	"checker-pa/src/utils"
 	"encoding/xml"
 	"fmt"
+	"os"
 	"strconv"
+	"strings"
 )
 
 const (
@@ -26,6 +28,10 @@ type Error struct {
 	AuxWhat string `xml:"auxwhat,omitempty"` // Additional error information
 }
 
+func (err *Error) isUserGenerated() bool {
+	return strings.Contains(err.Stack.Frames[0].Obj, "/home/")
+}
+
 // XWhat contains simplified extended error information for memory leaks
 type XWhat struct {
 	Text        string `xml:"text"`
@@ -42,6 +48,7 @@ type Frame struct {
 	Fn   string `xml:"fn"`
 	File string `xml:"file,omitempty"`
 	Line int    `xml:"line,omitempty"`
+	Obj  string `xml:"obj,omitempty"`
 }
 
 type memoryCheckerIssue struct {
@@ -50,6 +57,13 @@ type memoryCheckerIssue struct {
 	file       string
 	line       int
 	isCritical bool
+}
+
+func (mci *memoryCheckerIssue) String() string {
+	str := mci.file + ":" + strconv.Itoa(mci.line) + " inside " + mci.function + " "
+	str += mci.message
+
+	return str
 }
 
 type MemoryChecker struct {
@@ -75,56 +89,96 @@ func (mc *MemoryChecker) Score() uint32 {
 	return mc.score
 }
 
-func (mc *MemoryChecker) Details(display display.Display) {
-	display.PrintPage(0, "Memory checker summary\n", "")
+func (mc *MemoryChecker) warningsString() string {
+	warnMsg := "Found some warnings!" + "\n"
+	for _, warning := range mc.warnings {
+		warnMsg += warning.String() + "\n"
+	}
+
+	return warnMsg
+}
+
+func (mc *MemoryChecker) issuesString() string {
+	issueMsg := "Found issues!" + "\n"
+	for _, issue := range mc.issues {
+		issueMsg += issue.String() + "\n"
+	}
+
+	return issueMsg
+}
+
+func (mc *MemoryChecker) Display(d *display.Display) {
+	d.PrintPage(0, "Memory checker summary\n", "")
 
 	if len(mc.issues) == 1 && mc.issues[0].isCritical {
-		display.Println("Critical error detected!")
-		display.Println(mc.issues[0].message)
+		d.Println("Critical error detected!")
+		d.Println(mc.issues[0].message)
 		return
 	}
 
 	if len(mc.issues) == 0 && len(mc.warnings) == 0 {
-		display.Println(
+		d.Println(
 			fmt.Sprintf("No issues found! Great job you got %d/%d :)!",
 				mc.score, mc.score))
 		return
 	}
 
 	if len(mc.issues) == 0 {
-		display.Println("Found some warnings!")
-		for _, warning := range mc.warnings {
-			errMsg := warning.file + ":" + strconv.Itoa(warning.line) + " inside " + warning.function + " "
-			errMsg += warning.message
-			display.Println(errMsg)
-		}
 
-		display.Println(
+		d.Println(mc.warningsString())
+
+		d.Println(
 			fmt.Sprintf("Your score is %d/%d!",
 				mc.score, utils.Config.MemoryChecker.Score))
 		return
 	}
 
-	display.Println("Found issues!")
-	for _, issue := range mc.issues {
-		errMsg := issue.file + ":" + strconv.Itoa(issue.line) + " inside " + issue.function + " "
-		errMsg += issue.message
-		display.Println(errMsg)
-	}
+	//d.Println("Found issues!")
+	//for _, issue := range mc.issues {
+	//	d.Println(issue.String())
+	//}
+
+	d.Println(mc.issuesString())
 
 	if len(mc.warnings) != 0 {
-		display.Println("Found some warnings!")
-		for _, warning := range mc.warnings {
-			errMsg := warning.file + ":" + strconv.Itoa(warning.line) + " inside " + warning.function + " "
-			errMsg += warning.message
-			display.Println(errMsg)
-		}
+		d.Println(mc.warningsString())
+
+		//d.Println("Found some warnings!")
+		//for _, warning := range mc.warnings {
+		//	errMsg := warning.file + ":" + strconv.Itoa(warning.line) + " inside " + warning.function + " "
+		//	errMsg += warning.message
+		//	d.Println(errMsg)
+		//}
 	}
 
-	display.Println(
+	d.Println(
 		fmt.Sprintf("Your score is %d/%d!",
 			mc.score, utils.Config.MemoryChecker.Score))
 	return
+}
+
+func (mc *MemoryChecker) Dump() {
+	fmt.Printf("===== %s - %d =====\n\n", "Memory checker", mc.score)
+
+	if len(mc.issues) == 1 && mc.issues[0].isCritical {
+		fmt.Println("Critical error detected!")
+		fmt.Println(mc.issues[0].message)
+		return
+	}
+
+	if len(mc.warnings) > 0 {
+		fmt.Println(mc.warningsString())
+	}
+
+	if len(mc.issues) > 0 {
+		fmt.Println(mc.issuesString())
+	}
+
+	if len(mc.issues) == 0 && len(mc.warnings) == 0 {
+		fmt.Println("No issues found! Great job :)!")
+	}
+
+	fmt.Println()
 }
 
 func (mc *MemoryChecker) Run() {
@@ -132,13 +186,13 @@ func (mc *MemoryChecker) Run() {
 	//TODO: remove this later
 	data := []byte{}
 
-	// data, err := os.ReadFile("foobar.xml")
-	// if err != nil {
-	// 	panic(err)
-	// }
+	data, err := os.ReadFile("./temp/foobar.xml")
+	if err != nil {
+		panic(err)
+	}
 
 	var output ValgrindOutput
-	err := xml.Unmarshal(data, &output)
+	err = xml.Unmarshal(data, &output)
 	if err != nil {
 		issue := memoryCheckerIssue{message: "CRITICAL ERROR! " + err.Error(), isCritical: true}
 		mc.issues = append(mc.issues, issue)
@@ -160,18 +214,20 @@ func (mc *MemoryChecker) Run() {
 	}
 
 	for idx > -1 {
-		w := memoryCheckerIssue{message: output.Errors[idx].What}
-		w.file = output.Errors[idx].Stack.Frames[1].File
-		w.function = output.Errors[idx].Stack.Frames[1].Fn
-		w.line = output.Errors[idx].Stack.Frames[1].Line
+		if output.Errors[idx].isUserGenerated() {
+			w := memoryCheckerIssue{message: output.Errors[idx].What}
+			w.file = output.Errors[idx].Stack.Frames[1].File
+			w.function = output.Errors[idx].Stack.Frames[1].Fn
+			w.line = output.Errors[idx].Stack.Frames[1].Line
 
-		mc.warnings = append(mc.warnings, w)
+			mc.warnings = append(mc.warnings, w)
+		}
 
 		idx--
 	}
 
 	deduction := 2
-	if int32(len(mc.issues)*deduction)-int32(mc.score) <= 0 {
+	if int32(mc.score)-int32(len(mc.issues)*deduction) <= 0 {
 		mc.score = 0
 	} else {
 		mc.score -= uint32(len(mc.issues)) * uint32(deduction)
