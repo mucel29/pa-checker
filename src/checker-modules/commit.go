@@ -171,7 +171,7 @@ func (cc *CommitChecker) Run() {
 
 	deduction := 2
 
-	if int32(len(cc.issues)*deduction)-int32(points) <= 0 {
+	if points-int32(len(cc.issues)*deduction) <= 0 {
 		cc.score = 0
 	} else {
 		cc.score -= uint32(len(cc.issues) * deduction)
