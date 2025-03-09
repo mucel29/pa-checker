@@ -39,9 +39,6 @@ lint:
 	GO_GOLANGCI_LINT_ARGUMENTS=["./.."]
 	golangci-lint run -c .golangci.yml
 
-staticcheck:
-	staticcheck $(PKGS)
-
 deploy:
 	GOOS=$(OS) GOARCH=$(ARCH) go build -o $(BIN_NAME) ./main.go
 

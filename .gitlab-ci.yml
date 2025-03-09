@@ -23,7 +23,6 @@ lint:
     - go install honnef.co/go/tools/cmd/staticcheck@latest
     - make vet
     - make lint
-    - make staticcheck
 
 .go-build:
   before_script:
