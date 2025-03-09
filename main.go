@@ -30,7 +30,11 @@ func main() {
 
 	flag.Parse()
 
-	m.Run()
+	err = m.Run()
+	if err != nil {
+		panic(err)
+	}
+	m.Check()
 
 	if *useInteractive {
 

@@ -1,21 +1,62 @@
 package manager
 
 import (
+	"bytes"
 	"checker-pa/src/checker-modules"
 	"checker-pa/src/utils"
 	"errors"
 	"fmt"
-	"log"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"sync"
+	"time"
+)
+
+// SystemCapabilities TODO: make it a map in the future
+type SystemCapabilities int
+
+const (
+	valgrind SystemCapabilities = iota
+	cppcheck
+	end
 )
 
 type Manager struct {
 	Modules []checkermodules.CheckerModule
+
+	capabilities []bool
+}
+
+func (m *Manager) checkCapabilities() {
+
+	// Check for Valgrind
+
+	fmt.Println("Checking capabilities...")
+
+	if _, err := exec.LookPath("valgrind"); err != nil {
+		fmt.Println("[ERR] valgrind is not installed")
+	} else {
+		fmt.Println("[OK] valgrind")
+		m.capabilities[valgrind] = true
+	}
+
+	// Check for cppcheck
+	if _, err := exec.LookPath("cppcheck"); err != nil {
+		fmt.Println("[ERR] cppcheck is not installed")
+	} else {
+		fmt.Println("[OK] cppcheck")
+		m.capabilities[cppcheck] = true
+	}
+
 }
 
 func NewManager() (*Manager, error) {
 	var m Manager
 
+	m.capabilities = make([]bool, end)
+
+	m.checkCapabilities()
 	err := m.registerModules()
 	if err != nil {
 		return nil, err
@@ -107,7 +148,150 @@ func (m *Manager) RetrieveConfig() {
 	}
 }
 
-func (m *Manager) Run() {
+func forwardBytes(bytes bytes.Buffer, filename string) error {
+
+	absForward, err := filepath.Abs(utils.Config.ForwardPath)
+	if err != nil {
+		return err
+	}
+	if err := os.Mkdir(absForward, 0777); err != nil {
+		if !errors.Is(err, os.ErrExist) {
+			return err
+		}
+	}
+
+	f, err := os.Create(fmt.Sprintf("%s/%s", absForward, filename))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	_, err = f.Write(bytes.Bytes())
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Manager) Run() error {
+
+	if _, err := exec.LookPath(utils.Config.ExecutablePath); err != nil {
+		return fmt.Errorf("executable not found: %s", utils.Config.ExecutablePath)
+	}
+
+	start := time.Now()
+
+	outPath, err := filepath.Abs(utils.Config.OutputPath)
+	if err != nil {
+		return err
+	}
+
+	// Make sure temp path exists
+	tempPath, err := filepath.Abs(utils.Config.TempPath)
+	if err != nil {
+		return err
+	}
+
+	if err := os.Mkdir(tempPath, 0777); err != nil {
+		if !errors.Is(err, os.ErrExist) {
+			return err
+		}
+	}
+
+	// Make sure input path exists
+	inPath, err := filepath.Abs(utils.Config.InputPath)
+	if err != nil {
+		return err
+	}
+
+	if _, err := os.Stat(inPath); err != nil {
+		return err
+	}
+
+	// Make sure output path exists
+	if err := os.Mkdir(outPath, 0777); err != nil {
+		if !errors.Is(err, os.ErrExist) {
+			return err
+		}
+	}
+
+	wg := sync.WaitGroup{}
+
+	for _, test := range utils.Config.Tests {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			var processedArgs []string
+
+			// Process args
+			for _, arg := range test.Args {
+				switch arg {
+				case "$OUT":
+					absPath := fmt.Sprintf("%s/%s.out", outPath, test.File)
+					processedArgs = append(processedArgs, absPath)
+				case "$IN":
+					absPath := fmt.Sprintf("%s/%s.in", inPath, test.File)
+					processedArgs = append(processedArgs, absPath)
+				default:
+					processedArgs = append(processedArgs, arg)
+				}
+
+			}
+
+			var cmd *exec.Cmd
+
+			if m.capabilities[valgrind] && utils.Config.RunValgrind {
+
+				xmlPath := filepath.Join(tempPath, fmt.Sprintf("%s.xml", test.File))
+
+				execPath, err := filepath.Abs(utils.Config.ExecutablePath)
+				if err != nil {
+					return // err
+				}
+
+				valgrindArgs := []string{
+					"--leak-check=yes",
+					"--xml=yes",
+					fmt.Sprintf("--xml-file=%s", xmlPath),
+				}
+
+				cmd = exec.Command("valgrind", append(append(valgrindArgs, execPath), processedArgs...)...) //nolint:gosec
+				// fmt.Println("running: valgrind " + strings.Join(append(append(valgrindArgs, execPath), processedArgs...), " "))
+			} else {
+				cmd = exec.Command(utils.Config.ExecutablePath, processedArgs...) //nolint:gosec
+			}
+
+			var stdout, stderr bytes.Buffer
+			cmd.Stdout = &stdout
+			cmd.Stderr = &stderr
+
+			start = time.Now()
+
+			if err := cmd.Run(); err != nil {
+				utils.Log("Error running " + test.File)
+			}
+
+			// Forward stdout
+			if err := forwardBytes(stdout, fmt.Sprintf("%s.stdout", test.File)); err != nil {
+				return // err
+			}
+
+			// Forward stderr
+			if err := forwardBytes(stderr, fmt.Sprintf("%s.stderr", test.File)); err != nil {
+				return // err
+			}
+
+			fmt.Printf("[%s] Ran test %s\n", time.Since(start).String(), test.File)
+
+		}()
+	}
+
+	wg.Wait()
+	return nil
+}
+
+func (m *Manager) Check() {
 	var finished = make(map[string]bool)
 	var deferred []checkermodules.CheckerModule
 
@@ -143,7 +327,8 @@ func (m *Manager) Run() {
 	}
 
 	if cycle {
-		log.Fatal("Module dependency cycle detected")
+		utils.Log("Module dependency cycle detected")
+		panic(fmt.Errorf("module dependency cycle detected"))
 	}
 
 }

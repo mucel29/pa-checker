@@ -39,6 +39,11 @@ func (m *Menu) displayOptions() {
 	exPath.SetText(utils.Config.ExecutablePath)
 	exPath.SetFieldWidth(fieldWidth)
 
+	iPath := tview.NewInputField()
+	iPath.SetLabel("Input Path")
+	iPath.SetText(utils.Config.InputPath)
+	iPath.SetFieldWidth(fieldWidth)
+
 	sPath := tview.NewInputField()
 	sPath.SetLabel("Source Path")
 	sPath.SetText(utils.Config.SourcePath)
@@ -54,15 +59,23 @@ func (m *Menu) displayOptions() {
 	rPath.SetText(utils.Config.RefPath)
 	rPath.SetFieldWidth(fieldWidth)
 
+	fPath := tview.NewInputField()
+	fPath.SetLabel("Forward Path")
+	fPath.SetText(utils.Config.ForwardPath)
+	fPath.SetFieldWidth(fieldWidth)
+
 	form := tview.NewFlex()
 	form.SetDirection(tview.FlexRow)
+
 	form.AddItem(exPath, 0, 1, false)
+	form.AddItem(iPath, 0, 1, false)
 	form.AddItem(sPath, 0, 1, false)
 	form.AddItem(oPath, 0, 1, false)
 	form.AddItem(rPath, 0, 1, false)
+	form.AddItem(fPath, 0, 1, false)
 
 	items := []*tview.InputField{
-		exPath, sPath, oPath, rPath,
+		exPath, iPath, sPath, oPath, rPath, fPath,
 	}
 
 	itemIndex := 0
@@ -125,10 +138,12 @@ func (m *Menu) displayOptions() {
 
 	m.CurrentContainer().AddChangeCallback(func() {
 		// Save the new values
-		utils.Config.UserConfig.ExecutablePath = exPath.GetText()
-		utils.Config.UserConfig.SourcePath = sPath.GetText()
-		utils.Config.UserConfig.OutputPath = oPath.GetText()
-		utils.Config.UserConfig.RefPath = rPath.GetText()
+		utils.Config.ExecutablePath = exPath.GetText()
+		utils.Config.InputPath = iPath.GetText()
+		utils.Config.SourcePath = sPath.GetText()
+		utils.Config.OutputPath = oPath.GetText()
+		utils.Config.RefPath = rPath.GetText()
+		utils.Config.ForwardPath = fPath.GetText()
 
 		// TODO: trigger manager
 
@@ -251,7 +266,7 @@ func (m *Menu) createMainMenu() {
 
 	buttonContainer.AddItem(scoreContainer, 0, 1, true)
 
-	infoBox := tview.NewTextView().SetText("mucel\nCiprian\nsteffe\nHoricuz").SetTextAlign(tview.AlignCenter)
+	infoBox := tview.NewTextView().SetText("mucel Ciprian\nsteffe Horicuz").SetTextAlign(tview.AlignCenter)
 	infoBox.SetTitle("Credits").
 		SetTitleAlign(tview.AlignLeft).
 		SetBorder(true)
