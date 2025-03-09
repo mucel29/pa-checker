@@ -14,6 +14,9 @@ type WritableContainer struct {
 	inputCaptures []tview.Primitive
 	synced        bool
 
+	changeCallbacks []func()
+	inputCallbacks  []func(event *tcell.EventKey)
+
 	parent *Display
 }
 
@@ -24,6 +27,9 @@ func NewWritableContainer(d *Display) *WritableContainer {
 	container.parent = d
 
 	container.Container.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		for _, cb := range container.inputCallbacks {
+			cb(event)
+		}
 		for _, capture := range container.inputCaptures {
 			if !capture.HasFocus() {
 				capture.InputHandler()(event, nil)
@@ -91,6 +97,28 @@ func (wc *WritableContainer) AddSection(title string, fixed int, proportion int)
 		return action, event
 	})
 
+	newView.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyUp || event.Key() == tcell.KeyDown {
+
+			go func() {
+				time.Sleep(5 * time.Millisecond)
+
+				wc.parent.App.QueueUpdateDraw(func() {
+					for _, section := range wc.Sections {
+						if section == newView {
+							continue
+						}
+						section.ScrollTo(newView.GetScrollOffset())
+					}
+				})
+
+			}()
+
+		}
+
+		return event
+	})
+
 	if title != "" {
 		newView.SetTitle(title)
 	}
@@ -143,8 +171,28 @@ func (wc *WritableContainer) SyncSections(sync bool) {
 	wc.synced = sync
 }
 
+// Executed only once
+func (wc *WritableContainer) AddChangeCallback(callback func()) {
+	wc.changeCallbacks = append(wc.changeCallbacks, callback)
+}
+
+func (wc *WritableContainer) TriggerChange() {
+	for _, callback := range wc.changeCallbacks {
+		callback()
+	}
+
+	wc.changeCallbacks = nil
+}
+
+func (wc *WritableContainer) AddInputCallback(callback func(event *tcell.EventKey)) {
+	wc.inputCallbacks = append(wc.inputCallbacks, callback)
+}
+
 func (wc *WritableContainer) Clear() {
+	wc.TriggerChange()
 	wc.Container.Clear()
 	wc.Sections = []*tview.TextView{}
+	wc.inputCaptures = []tview.Primitive{}
+	wc.inputCallbacks = nil
 	wc.Title("", 0)
 }

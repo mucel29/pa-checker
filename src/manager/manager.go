@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 )
 
 type Manager struct {
@@ -19,6 +20,8 @@ func NewManager() (*Manager, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	m.RetrieveConfig()
 
 	return &m, nil
 }
@@ -73,6 +76,34 @@ func runDeferred(deferred []checkermodules.CheckerModule, finished map[string]bo
 			deferredModule.Run()
 			finished[deferredModule.GetName()] = true
 		}
+	}
+}
+
+func (m *Manager) RetrieveConfig() {
+	if _, err := os.Stat(utils.UserConfigPath); err == nil {
+		// Read the config from there
+		data, err := os.ReadFile(utils.UserConfigPath)
+		if err != nil {
+			panic(err)
+		}
+
+		utils.Config.UserConfig, err = utils.NewUserConfig(string(data))
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		f, err := os.Create(utils.UserConfigPath)
+		if err != nil {
+			panic(err)
+		}
+
+		defer f.Close()
+
+		_, err = f.WriteString(utils.Config.DefaultUserConfig)
+		if err != nil {
+			panic(err)
+		}
+
 	}
 }
 
