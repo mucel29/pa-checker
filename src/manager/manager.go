@@ -9,7 +9,7 @@ import (
 )
 
 type Manager struct {
-	Modules []checker_modules.CheckerModule
+	Modules []checkermodules.CheckerModule
 }
 
 func NewManager() (*Manager, error) {
@@ -23,35 +23,35 @@ func NewManager() (*Manager, error) {
 	return &m, nil
 }
 
-func (m *Manager) register(module checker_modules.CheckerModule) {
+func (m *Manager) register(module checkermodules.CheckerModule) {
 	m.Modules = append(m.Modules, module)
 }
 
 func (m *Manager) registerModules() error {
-	if utils.Config.ModuleConfig.RefChecker != nil && checker_modules.AvailableModules["ref_checker"] == nil {
+	if utils.Config.ModuleConfig.RefChecker != nil && checkermodules.AvailableModules["ref_checker"] == nil {
 		return errors.New("ref_checker not available")
 	}
 
-	if utils.Config.ModuleConfig.MemoryChecker != nil && checker_modules.AvailableModules["memory_checker"] == nil {
+	if utils.Config.ModuleConfig.MemoryChecker != nil && checkermodules.AvailableModules["memory_checker"] == nil {
 		return errors.New("memory_checker not available")
 	}
 
-	if utils.Config.ModuleConfig.StyleChecker != nil && checker_modules.AvailableModules["style_checker"] == nil {
+	if utils.Config.ModuleConfig.StyleChecker != nil && checkermodules.AvailableModules["style_checker"] == nil {
 		return errors.New("style_checker not available")
 	}
 
-	if utils.Config.ModuleConfig.CommitChecker != nil && checker_modules.AvailableModules["commit_checker"] == nil {
+	if utils.Config.ModuleConfig.CommitChecker != nil && checkermodules.AvailableModules["commit_checker"] == nil {
 		return errors.New("commit_checker not available")
 	}
 
-	for _, module := range checker_modules.AvailableModules {
+	for _, module := range checkermodules.AvailableModules {
 		m.register(module)
 	}
 
 	return nil
 }
 
-func checkDependencies(module checker_modules.CheckerModule, finished map[string]bool) bool {
+func checkDependencies(module checkermodules.CheckerModule, finished map[string]bool) bool {
 	if len(module.WaitingFor()) == 0 {
 		return true
 	}
@@ -65,7 +65,7 @@ func checkDependencies(module checker_modules.CheckerModule, finished map[string
 	return true
 }
 
-func runDeferred(deferred []checker_modules.CheckerModule, finished map[string]bool) {
+func runDeferred(deferred []checkermodules.CheckerModule, finished map[string]bool) {
 	for i, deferredModule := range deferred {
 		if checkDependencies(deferredModule, finished) {
 			deferred = append(deferred[:i], deferred[i+1:]...)
@@ -78,7 +78,7 @@ func runDeferred(deferred []checker_modules.CheckerModule, finished map[string]b
 
 func (m *Manager) Run() {
 	var finished = make(map[string]bool)
-	var deferred []checker_modules.CheckerModule
+	var deferred []checkermodules.CheckerModule
 
 	for _, module := range m.Modules {
 		// If the current module doesn't need to wait for another, just run it
@@ -117,8 +117,8 @@ func (m *Manager) Run() {
 
 }
 
-func (m *Manager) TotalScore() uint32 {
-	var total uint32
+func (m *Manager) TotalScore() int {
+	var total int
 	for _, module := range m.Modules {
 		total += module.Score()
 	}

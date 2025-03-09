@@ -1,10 +1,11 @@
-package checker_modules
+package checkermodules
 
 import (
 	"checker-pa/src/display"
 	"checker-pa/src/utils"
 	"encoding/xml"
 	"fmt"
+	"github.com/rivo/tview"
 	"os"
 	"strconv"
 	"strings"
@@ -67,7 +68,7 @@ func (mci *memoryCheckerIssue) String() string {
 }
 
 type MemoryChecker struct {
-	score    uint32
+	score    int
 	issues   []memoryCheckerIssue
 	warnings []memoryCheckerIssue
 }
@@ -85,7 +86,7 @@ func (mc *MemoryChecker) Reset() {
 	mc.score = 0
 }
 
-func (mc *MemoryChecker) Score() uint32 {
+func (mc *MemoryChecker) Score() int {
 	return mc.score
 }
 
@@ -108,7 +109,10 @@ func (mc *MemoryChecker) issuesString() string {
 }
 
 func (mc *MemoryChecker) Display(d *display.Display) {
-	d.PrintPage(0, "Memory checker summary\n", "")
+	d.CurrentContainer().Title("Memory checker - "+strconv.Itoa(int(mc.score)), tview.AlignLeft)
+
+	// Disable border
+	d.PrintPage(0, "$nb", "")
 
 	if len(mc.issues) == 1 && mc.issues[0].isCritical {
 		d.Println("Critical error detected!")
@@ -133,28 +137,15 @@ func (mc *MemoryChecker) Display(d *display.Display) {
 		return
 	}
 
-	//d.Println("Found issues!")
-	//for _, issue := range mc.issues {
-	//	d.Println(issue.String())
-	//}
-
 	d.Println(mc.issuesString())
 
 	if len(mc.warnings) != 0 {
 		d.Println(mc.warningsString())
-
-		//d.Println("Found some warnings!")
-		//for _, warning := range mc.warnings {
-		//	errMsg := warning.file + ":" + strconv.Itoa(warning.line) + " inside " + warning.function + " "
-		//	errMsg += warning.message
-		//	d.Println(errMsg)
-		//}
 	}
 
 	d.Println(
 		fmt.Sprintf("Your score is %d/%d!",
 			mc.score, utils.Config.MemoryChecker.Score))
-	return
 }
 
 func (mc *MemoryChecker) Dump() {
@@ -182,8 +173,8 @@ func (mc *MemoryChecker) Dump() {
 }
 
 func (mc *MemoryChecker) Run() {
-	//MOCK DATA
-	//TODO: remove this later
+	// MOCK DATA
+	// TODO: remove this later
 	data := []byte{}
 
 	data, err := os.ReadFile("./temp/foobar.xml")
@@ -199,7 +190,7 @@ func (mc *MemoryChecker) Run() {
 		return
 	}
 
-	mc.score = uint32(utils.Config.MemoryChecker.Score)
+	mc.score = utils.Config.MemoryChecker.Score
 
 	idx := len(output.Errors) - 1
 	for idx > -1 && output.Errors[idx].Kind == definitelyLeaked {
@@ -227,10 +218,10 @@ func (mc *MemoryChecker) Run() {
 	}
 
 	deduction := 2
-	if int32(mc.score)-int32(len(mc.issues)*deduction) <= 0 {
+	if mc.score-len(mc.issues)*deduction <= 0 {
 		mc.score = 0
 	} else {
-		mc.score -= uint32(len(mc.issues)) * uint32(deduction)
+		mc.score -= len(mc.issues) * deduction
 	}
 
 }
