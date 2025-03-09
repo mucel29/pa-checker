@@ -3,6 +3,7 @@
 
 bin/
 temp/
+.checker_temp/
 
 .DS_Store
 log.txt
