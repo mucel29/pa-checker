@@ -133,6 +133,7 @@ func (d *Display) PreviousPage() {
 
 	// Pop the current page and reload the last
 	d.pageStack.Pop()
+	d.App.SetFocus(d.CurrentContainer().Container)
 	d.UpdateDisplay()
 
 }
@@ -149,6 +150,10 @@ func (d *Display) AddWritableContainer(container *WritableContainer, fixed int, 
 
 	d.AddElement(element)
 	d.currentPage().WritableContainer = container
+}
+
+func (d *Display) CurrentPageIndex() int {
+	return d.pageStack.Len() - 1
 }
 
 func (d *Display) CurrentContainer() *WritableContainer {

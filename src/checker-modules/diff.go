@@ -91,6 +91,10 @@ func (dm *DiffModule) Run() {
 
 func (dm *DiffModule) Display(d *display.Display) {
 
+	// TODO: fix weird bug where selecting a cell selects 2 cells
+	// TODO: maybe highlight the last clicked cell
+	// TODO: this means to move the table selector back here to access the clojure variables
+
 	d.CurrentContainer().Title("Ref checker - "+strconv.Itoa(int(dm.totalScore)), tview.AlignLeft)
 
 	if len(dm.Issues) > 0 {
@@ -155,10 +159,13 @@ func (dm *DiffModule) Dump() {
 }
 
 // Helper function to update the comparison display with new file content
-func updateComparisonDisplay(display *display.Display, result FileCompareResult) {
+func updateComparisonDisplay(d *display.Display, result FileCompareResult) {
+
+	d.App.SetFocus(d.CurrentContainer().Container)
+
 	// Show file being viewed in both sections
-	display.PrintPage(0, fmt.Sprintf("Reference - %s", result.filename), "")
-	display.PrintPage(1, fmt.Sprintf("Output - %s", result.filename), "")
+	d.PrintPage(0, fmt.Sprintf("Reference - %s", result.filename), "")
+	d.PrintPage(1, fmt.Sprintf("Output - %s", result.filename), "")
 
 	// Prepare the reference section content
 	var refContent strings.Builder
@@ -187,8 +194,11 @@ func updateComparisonDisplay(display *display.Display, result FileCompareResult)
 	}
 
 	// Update each section with its content
-	display.PrintPage(0, fmt.Sprintf("Reference - %s", result.filename), refContent.String())
-	display.PrintPage(1, fmt.Sprintf("Output - %s", result.filename), outContent.String())
+	d.PrintPage(0, fmt.Sprintf("Reference - %s", result.filename), refContent.String())
+	d.PrintPage(1, fmt.Sprintf("Output - %s", result.filename), outContent.String())
+
+	// Wrap input over section 0 to support key scrolling
+	d.CurrentContainer().WrapInput(d.CurrentContainer().Sections[0])
 }
 
 // Helper function to show side-by-side comparison (not needed anymore but kept for non-interactive mode)

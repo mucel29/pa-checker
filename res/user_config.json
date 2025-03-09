@@ -1,6 +1,6 @@
 {
-    "source_path": "./temp/tema/",
+    "source_path": "./src",
     "executable_path": "./a.out",
-    "output_path": "./temp/OutputData",
-    "ref_path": "./temp/LastRef"
+    "output_path": "./out",
+    "ref_path": "./ref"
 }
