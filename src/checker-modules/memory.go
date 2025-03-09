@@ -173,10 +173,6 @@ func (mc *MemoryChecker) Dump() {
 }
 
 func (mc *MemoryChecker) Run() {
-	// MOCK DATA
-	// TODO: remove this later
-	data := []byte{}
-
 	data, err := os.ReadFile("./temp/foobar.xml")
 	if err != nil {
 		panic(err)
