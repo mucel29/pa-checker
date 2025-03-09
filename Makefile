@@ -1,6 +1,6 @@
 BINARY_NAME=checker
 SOURCE_DIR=./src
-PKGS = 	./src         \
+PKGS = 	$(shell find $(SOURCE_DIR) -name '*.go' )        \
 		./main.go
 BIN_DIR=./bin
 
@@ -35,7 +35,9 @@ vet:
 	go vet ./...
 
 lint:
-	golangci-lint run -c .golangci.yml $(PKGS)
+	GO_GOLANGCI_LINT_CLI_LINT_MODE=project
+	GO_GOLANGCI_LINT_ARGUMENTS=["./.."]
+	golangci-lint run -c .golangci.yml
 
 staticcheck:
 	staticcheck $(PKGS)

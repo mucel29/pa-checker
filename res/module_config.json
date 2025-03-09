@@ -6,38 +6,174 @@
     "input_path": "./path/to/exec", // might convert to enums?
     "tests": [
       {
-        "displayName": "test_01",
+        "displayName": "data1",
         "args": ["arg1", "arg2", "arg3"],
-        "ordered": false,
-        "whitespace": false,
         "score": 2
       },
       {
-        "displayName": "test_02",
+        "displayName": "data2",
         "args": ["arg1", "arg2", "arg3"],
-        "ordered": false,
-        "whitespace": false,
         "score": 3
       },
       {
-        "displayName": "test_03",
+        "displayName": "data3",
         "args": ["arg1", "arg2", "arg3"],
-        "ordered": true,
-        "whitespace": false,
         "score": 3
       },
       {
-        "displayName": "test_04",
+        "displayName": "data4",
         "args": ["arg1", "arg2", "arg3"],
-        "ordered": true,
-        "whitespace": false,
+        
         "score": 4
       },
       {
-        "displayName": "test_05",
+        "displayName": "data5",
         "args": ["arg1", "arg2", "arg3"],
-        "ordered": true,
-        "whitespace": true,
+        "score": 10
+      },
+      {
+        "displayName": "data6",
+        "args": ["arg1", "arg2", "arg3"],
+        "score": 10
+      },
+      {
+        "displayName": "data7",
+        "args": ["arg1", "arg2", "arg3"],
+        "score": 10
+      },
+      {
+        "displayName": "data8",
+        "args": ["arg1", "arg2", "arg3"],
+        "score": 10
+      },
+      {
+        "displayName": "data9",
+        "args": ["arg1", "arg2", "arg3"],
+        "score": 10
+      },
+      {
+        "displayName": "data10",
+        "args": ["arg1", "arg2", "arg3"],
+        "score": 10
+      },
+      {
+        "displayName": "data11",
+        "args": ["arg1", "arg2", "arg3"],
+        "score": 10
+      },
+      {
+        "displayName": "data12",
+        "args": ["arg1", "arg2", "arg3"],
+        "score": 10
+      },
+      {
+        "displayName": "data13",
+        "args": ["arg1", "arg2", "arg3"],
+        "score": 10
+      },
+      {
+        "displayName": "data14",
+        "args": ["arg1", "arg2", "arg3"],
+        "score": 10
+      },
+      {
+        "displayName": "data15",
+        "args": ["arg1", "arg2", "arg3"],
+        "score": 10
+      },
+      {
+        "displayName": "data16",
+        "args": ["arg1", "arg2", "arg3"],
+        "score": 10
+      },
+      {
+        "displayName": "data17",
+        "args": ["arg1", "arg2", "arg3"],
+        "score": 10
+      },
+      {
+        "displayName": "data18",
+        "args": ["arg1", "arg2", "arg3"],
+        "score": 10
+      },
+      {
+        "displayName": "data19",
+        "args": ["arg1", "arg2", "arg3"],
+        "score": 10
+      },
+      {
+        "displayName": "data20",
+        "args": ["arg1", "arg2", "arg3"],
+        "score": 10
+      },
+      {
+        "displayName": "data21",
+        "args": ["arg1", "arg2", "arg3"],
+        "score": 10
+      },
+      {
+        "displayName": "data22",
+        "args": ["arg1", "arg2", "arg3"],
+        "score": 10
+      },
+      {
+        "displayName": "data23",
+        "args": ["arg1", "arg2", "arg3"],
+        "score": 10
+      },
+      {
+        "displayName": "data24",
+        "args": ["arg1", "arg2", "arg3"],
+        "score": 10
+      },
+      {
+        "displayName": "data25",
+        "args": ["arg1", "arg2", "arg3"],
+        "score": 10
+      },
+      {
+        "displayName": "data26",
+        "args": ["arg1", "arg2", "arg3"],
+        "score": 10
+      },
+      {
+        "displayName": "data27",
+        "args": ["arg1", "arg2", "arg3"],
+        "score": 10
+      },
+      {
+        "displayName": "data28",
+        "args": ["arg1", "arg2", "arg3"],
+        "score": 10
+      },
+      {
+        "displayName": "data29",
+        "args": ["arg1", "arg2", "arg3"],
+        "score": 10
+      },
+      {
+        "displayName": "data30",
+        "args": ["arg1", "arg2", "arg3"],
+        "score": 10
+      },
+      {
+        "displayName": "data31",
+        "args": ["arg1", "arg2", "arg3"],
+        "score": 10
+      },
+      {
+        "displayName": "data32",
+        "args": ["arg1", "arg2", "arg3"],
+        "score": 10
+      },
+      {
+        "displayName": "data33",
+        "args": ["arg1", "arg2", "arg3"],
+        "score": 10
+      },
+      {
+        "displayName": "data34",
+        "args": ["arg1", "arg2", "arg3"],
         "score": 10
       }
     ]
