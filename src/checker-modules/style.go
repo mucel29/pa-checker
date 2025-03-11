@@ -7,6 +7,7 @@ import (
 	"checker-pa/src/utils"
 	"encoding/xml"
 	"fmt"
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"math"
 	"os"
@@ -34,14 +35,66 @@ func (sc *StyleChecker) Display(d *display.Display) {
 	// Display module summary
 	d.CurrentContainer().Title("Style checker - "+strconv.Itoa(int(sc.totalScore)), tview.AlignLeft)
 
-	// Display errors
-	if len(sc.Issues) > 0 {
-		err := ModuleError{
-			ErrorMessage: "Style issues found in the code",
-			Issues:       sc.Issues,
-		}
-		d.PrintPage(0, "$nb", err.String())
+	groups := sc.ModuleError.groupIssues(func(issue *ModuleIssue) string {
+		return issue.File
+	})
+
+	if groups[""] != nil {
+		d.PrintPage(0, "$nb", groups[""][0].Message)
+		return
 	}
+
+	fileTable := tview.NewTable()
+
+	fileTable.SetInputCapture(utils.TableSelector(len(groups), fileTable))
+
+	currentRow := 0
+	currentCol := 0
+
+	for file := range groups {
+		if currentRow >= MaxRow && currentCol < MaxCol {
+			currentRow = 0
+			currentCol++
+		}
+
+		cell := tview.NewTableCell(file)
+
+		cell.SetTextColor(tcell.ColorDarkCyan)
+
+		cell.SetSelectable(true)
+		cell.SetClickedFunc(func() bool {
+
+			d.NewPage("[darkcyan]"+file, true)
+			d.CurrentContainer().SetDirection(tview.FlexColumn)
+			d.CurrentContainer().SyncSections(true)
+			d.AddWritableContainer(d.CurrentContainer(), 0, 1)
+
+			d.PrintPage(0, "$nb", "")
+
+			for _, issue := range groups[file] {
+				d.Println(issue.Message)
+			}
+
+			d.App.SetFocus(d.CurrentContainer().Container)
+			d.CurrentContainer().WrapInput(d.CurrentContainer().Sections[0])
+
+			return false
+		})
+		fileTable.SetCell(currentRow, currentCol, cell)
+
+		currentRow++
+	}
+
+	firstCell := fileTable.GetCell(0, 0)
+
+	textColor, _, _ := firstCell.Style.Decompose()
+
+	// Create reverse style
+	firstCell.SetBackgroundColor(textColor)
+	firstCell.SetTextColor(tcell.ColorWhite)
+
+	d.CurrentContainer().AddPrimitive(fileTable, true, 0, 1)
+
 }
 
 func (sc *StyleChecker) Dump() {

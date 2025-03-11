@@ -93,57 +93,62 @@ func (dm *DiffModule) Display(d *display.Display) {
 
 	// TODO: fix weird bug where selecting a cell selects 2 cells
 	// TODO: maybe highlight the last clicked cell
-	// TODO: this means to move the table selector back here to access the clojure variables
+	// TODO: this means to move the table selector back here to access the closure variables
 
-	d.CurrentContainer().Title("Ref checker - "+strconv.Itoa(int(dm.totalScore)), tview.AlignLeft)
+	d.CurrentContainer().Title("Ref checker - "+strconv.Itoa(dm.totalScore), tview.AlignLeft)
 
-	if len(dm.Issues) > 0 {
+	if len(dm.Issues) == 0 {
+		d.CurrentContainer().Print("All files matched!")
+		return
+	}
 
-		fileTable := tview.NewTable()
+	fileTable := tview.NewTable()
 
-		fileTable.SetInputCapture(utils.TableSelector(len(dm.results), fileTable))
+	fileTable.SetInputCapture(utils.TableSelector(len(dm.results), fileTable))
 
-		currentRow := 0
-		currentCol := 0
+	currentRow := 0
+	currentCol := 0
 
-		for _, result := range dm.results {
-			if currentRow >= MaxRow && currentCol < MaxCol {
-				currentRow = 0
-				currentCol++
-			}
-
-			cell := tview.NewTableCell(result.filename)
-
-			if result.matched {
-				cell.SetTextColor(tcell.ColorGreen)
-			} else {
-				cell.SetTextColor(tcell.ColorRed)
-			}
-
-			cell.SetSelectable(true)
-			cell.SetClickedFunc(func() bool {
-
-				d.NewPage("", true)
-				d.CurrentContainer().SetDirection(tview.FlexColumn)
-				d.CurrentContainer().SyncSections(true)
-				d.AddWritableContainer(d.CurrentContainer(), 0, 1)
-
-				updateComparisonDisplay(d, result)
-
-				return false
-			})
-			fileTable.SetCell(currentRow, currentCol, cell)
-
-			currentRow++
+	for _, result := range dm.results {
+		if currentRow >= MaxRow && currentCol < MaxCol {
+			currentRow = 0
+			currentCol++
 		}
 
-		fileTable.GetCell(0, 0).SetBackgroundColor(tcell.ColorWhite)
+		cell := tview.NewTableCell(result.filename)
 
-		d.CurrentContainer().AddPrimitive(fileTable, true, 0, 1)
+		if result.matched {
+			cell.SetTextColor(tcell.ColorGreen)
+		} else {
+			cell.SetTextColor(tcell.ColorRed)
+		}
 
-	} else {
-		d.CurrentContainer().Print("All files matched!")
+		cell.SetSelectable(true)
+		cell.SetClickedFunc(func() bool {
+
+			d.NewPage("", true)
+			d.CurrentContainer().SetDirection(tview.FlexColumn)
+			d.CurrentContainer().SyncSections(true)
+			d.AddWritableContainer(d.CurrentContainer(), 0, 1)
+
+			updateComparisonDisplay(d, result)
+
+			return false
+		})
+		fileTable.SetCell(currentRow, currentCol, cell)
+
+		currentRow++
 	}
+
+	firstCell := fileTable.GetCell(0, 0)
+
+	textColor, _, _ := firstCell.Style.Decompose()
+
+	// Create reverse style
+	firstCell.SetBackgroundColor(textColor)
+	firstCell.SetTextColor(tcell.ColorWhite)
+
+	d.CurrentContainer().AddPrimitive(fileTable, true, 0, 1)
 
 }
 

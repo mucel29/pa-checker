@@ -32,20 +32,20 @@ func (m *Manager) checkCapabilities() {
 
 	// Check for Valgrind
 
-	fmt.Println("Checking capabilities...")
+	utils.Log("Checking capabilities...")
 
 	if _, err := exec.LookPath("valgrind"); err != nil {
-		fmt.Println("[ERR] valgrind is not installed")
+		utils.Log("[ERR] valgrind")
 	} else {
-		fmt.Println("[OK] valgrind")
+		utils.Log("[OK] valgrind")
 		m.capabilities[valgrind] = true
 	}
 
 	// Check for cppcheck
 	if _, err := exec.LookPath("cppcheck"); err != nil {
-		fmt.Println("[ERR] cppcheck is not installed")
+		utils.Log("[ERR] cppcheck")
 	} else {
-		fmt.Println("[OK] cppcheck")
+		utils.Log("[OK] cppcheck")
 		m.capabilities[cppcheck] = true
 	}
 
@@ -113,7 +113,7 @@ func runDeferred(deferred []checkermodules.CheckerModule, finished map[string]bo
 	for i, deferredModule := range deferred {
 		if checkDependencies(deferredModule, finished) {
 			deferred = append(deferred[:i], deferred[i+1:]...)
-			fmt.Println("Running " + deferredModule.GetName() + " module")
+			utils.Log("Running " + deferredModule.GetName() + " module")
 			deferredModule.Run()
 			finished[deferredModule.GetName()] = true
 		}
@@ -128,6 +128,7 @@ func (m *Manager) RetrieveConfig() {
 			panic(err)
 		}
 
+		// Bug: if fields are not present, they get changed to ""
 		utils.Config.UserConfig, err = utils.NewUserConfig(string(data))
 		if err != nil {
 			panic(err)
@@ -282,7 +283,7 @@ func (m *Manager) Run() error {
 				return // err
 			}
 
-			fmt.Printf("[%s] Ran test %s\n", time.Since(start).String(), test.File)
+			utils.Log(fmt.Sprintf("[%s] %s", time.Since(start).String(), test.File))
 
 		}()
 	}
@@ -298,7 +299,7 @@ func (m *Manager) Check() {
 	for _, module := range m.Modules {
 		// If the current module doesn't need to wait for another, just run it
 		if checkDependencies(module, finished) {
-			fmt.Println("Running " + module.GetName() + " module")
+			utils.Log("Running " + module.GetName() + " module")
 			module.Run()
 			finished[module.GetName()] = true
 		} else {
