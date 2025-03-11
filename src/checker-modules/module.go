@@ -47,3 +47,14 @@ func (err *ModuleError) String() string {
 
 	return message
 }
+
+func (err *ModuleError) groupIssues(groupBy func(issue *ModuleIssue) string) map[string][]ModuleIssue {
+
+	group := make(map[string][]ModuleIssue)
+
+	for _, issue := range err.Issues {
+		group[groupBy(&issue)] = append(group[groupBy(&issue)], issue)
+	}
+
+	return group
+}

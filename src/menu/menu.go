@@ -29,6 +29,14 @@ const (
 	fieldWidth = 30
 )
 
+func orString(str1, str2 string) string {
+	if str1 == "" {
+		return str2
+	}
+
+	return str1
+}
+
 func (m *Menu) displayOptions() {
 
 	m.CurrentContainer().Clear()
@@ -138,12 +146,12 @@ func (m *Menu) displayOptions() {
 
 	m.CurrentContainer().AddChangeCallback(func() {
 		// Save the new values
-		utils.Config.ExecutablePath = exPath.GetText()
-		utils.Config.InputPath = iPath.GetText()
-		utils.Config.SourcePath = sPath.GetText()
-		utils.Config.OutputPath = oPath.GetText()
-		utils.Config.RefPath = rPath.GetText()
-		utils.Config.ForwardPath = fPath.GetText()
+		utils.Config.ExecutablePath = orString(exPath.GetText(), utils.Config.ExecutablePath)
+		utils.Config.InputPath = orString(iPath.GetText(), utils.Config.InputPath)
+		utils.Config.SourcePath = orString(sPath.GetText(), utils.Config.SourcePath)
+		utils.Config.OutputPath = orString(oPath.GetText(), utils.Config.OutputPath)
+		utils.Config.RefPath = orString(rPath.GetText(), utils.Config.RefPath)
+		utils.Config.ForwardPath = orString(fPath.GetText(), utils.Config.ForwardPath)
 
 		// TODO: trigger manager
 
@@ -163,13 +171,11 @@ func (m *Menu) displayRef() {
 func (m *Menu) displayStyle() {
 	m.CurrentContainer().Clear()
 	checker_modules.AvailableModules["style_checker"].Display(m.Display)
-	m.CurrentContainer().WrapInput(m.CurrentContainer().Sections[0])
 }
 
 func (m *Menu) displayMemory() {
 	m.CurrentContainer().Clear()
 	checker_modules.AvailableModules["memory_checker"].Display(m.Display)
-	m.CurrentContainer().WrapInput(m.CurrentContainer().Sections[0])
 }
 
 func (m *Menu) displayCommits() {

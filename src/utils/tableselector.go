@@ -12,6 +12,11 @@ func TableSelector(itemCount int, table *tview.Table) func(event *tcell.EventKey
 	return func(event *tcell.EventKey) *tcell.EventKey {
 
 		sCell := table.GetCell(selectedRow, selectedCol)
+
+		_, backColor, _ := sCell.Style.Decompose()
+
+		// Reverse colors
+		sCell.SetTextColor(backColor)
 		sCell.SetBackgroundColor(tcell.ColorDefault)
 
 		// Get max column for current column
@@ -58,7 +63,12 @@ func TableSelector(itemCount int, table *tview.Table) func(event *tcell.EventKey
 		}
 
 		sCell = table.GetCell(selectedRow, selectedCol)
-		sCell.SetBackgroundColor(tcell.ColorWhite)
+
+		textColor, _, _ := sCell.Style.Decompose()
+
+		// Reverse colors
+		sCell.SetBackgroundColor(textColor)
+		sCell.SetTextColor(tcell.ColorWhite)
 
 		return nil
 	}
