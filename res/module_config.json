@@ -2,217 +2,72 @@
 
 {
   "temp_path": "./.checker_temp",
-  "run_valgrind": false,
+  "run_valgrind": true,
 
   "ref_checker": {
     "run_after": [],
     "input_path": "./path/to/exec", // might convert to enums?
     "tests": [
       {
-        "displayName": "data1",
-        "file": "data1",
-        "args": ["$IN", "$OUT"],
+        "displayName": "Test 01",
+        "file": "out1",
+        "args": ["task1", "Ana", "-m", "-n=100", "--file=$SRC_DIR/teste/dir2/in1.txt", "--out=$OUT"],
         "score": 2
       },
       {
-        "displayName": "data2",
-        "file": "data2",
-        "args": ["$IN", "$OUT"],
-        "score": 3
+        "displayName": "Test 02",
+        "file": "out2",
+        "args": ["task1", "Ana", "are", "mere", "--file=$SRC_DIR/teste/dir1/dir4/in2.txt", "--out=$OUT"],
+        "score": 2
       },
       {
-        "displayName": "data3",
-        "file": "data3",
-        "args": ["$IN", "$OUT"],
-        "score": 3
+        "displayName": "Test 03",
+        "file": "out3",
+        "args": ["task1", "argument1", "argument2", "-ab", "--file=$SRC_DIR/teste/dir1/in3.txt", "--out=$OUT"],
+        "score": 2
       },
       {
-        "displayName": "data4",
-        "file": "data4",
-        "args": ["$IN", "$OUT"],
-
-        "score": 4
+        "displayName": "Test 04",
+        "file": "out4",
+        "args": ["task1", "argument2", "-bc", "-d", "--file=$SRC_DIR/teste/dir1/dir4/in4.txt", "--out=$OUT"],
+        "score": 2
       },
       {
-        "displayName": "data5",
-        "file": "data5",
-        "args": ["$IN", "$OUT"],
-        "score": 10
+        "displayName": "Test 05",
+        "file": "out5",
+        "args": ["task1", "argument", "--arg", "-b", "100", "--file=$SRC_DIR/teste/in5.txt", "--out=$OUT"],
+        "score": 2
       },
       {
-        "displayName": "data6",
-        "file": "data6",
-        "args": ["$IN", "$OUT"],
-        "score": 10
+        "displayName": "Test 06",
+        "file": "out6",
+        "args": ["task2", "$SRC_DIR/teste", "--out=$OUT"],
+        "score": 2
       },
       {
-        "displayName": "data7",
-        "file": "data7",
-        "args": ["$IN", "$OUT"],
-        "score": 10
+        "displayName": "Test 07",
+        "file": "out7",
+        "args": ["task2", "$SRC_DIR/teste", "-r", "--out=$OUT"],
+        "score": 2
       },
       {
-        "displayName": "data8",
-        "file": "data8",
-        "args": ["$IN", "$OUT"],
-        "score": 10
+        "displayName": "Test 08",
+        "file": "out8",
+        "args": ["task2", "$SRC_DIR/teste", "-h", "--out=$OUT"],
+        "score": 2
       },
       {
-        "displayName": "data9",
-        "file": "data9",
-        "args": ["$IN", "$OUT"],
-        "score": 10
+        "displayName": "Test 09",
+        "file": "out9",
+        "args": ["task2", "$SRC_DIR/teste", "-rh", "--out=$OUT"],
+        "score": 2
       },
       {
-        "displayName": "data10",
-        "file": "data10",
-        "args": ["$IN", "$OUT"],
-        "score": 10
-      },
-      {
-        "displayName": "data11",
-        "file": "data11",
-        "args": ["$IN", "$OUT"],
-        "score": 10
-      },
-      {
-        "displayName": "data12",
-        "file": "data12",
-        "args": ["$IN", "$OUT"],
-        "score": 10
-      },
-      {
-        "displayName": "data13",
-        "file": "data13",
-        "args": ["$IN", "$OUT"],
-        "score": 10
-      },
-      {
-        "displayName": "data14",
-        "file": "data14",
-        "args": ["$IN", "$OUT"],
-        "score": 10
-      },
-      {
-        "displayName": "data15",
-        "file": "data15",
-        "args": ["$IN", "$OUT"],
-        "score": 10
-      },
-      {
-        "displayName": "data16",
-        "file": "data16",
-        "args": ["$IN", "$OUT"],
-        "score": 10
-      },
-      {
-        "displayName": "data17",
-        "file": "data17",
-        "args": ["$IN", "$OUT"],
-        "score": 10
-      },
-      {
-        "displayName": "data18",
-        "file": "data18",
-        "args": ["$IN", "$OUT"],
-        "score": 10
-      },
-      {
-        "displayName": "data19",
-        "file": "data19",
-        "args": ["$IN", "$OUT"],
-        "score": 10
-      },
-      {
-        "displayName": "data20",
-        "file": "data20",
-        "args": ["$IN", "$OUT"],
-        "score": 10
-      }//,
-//      {
-//        "displayName": "data21",
-//        "file": "data21",
-//        "args": ["$IN", "$OUT"],
-//        "score": 10
-//      },
-//      {
-//        "displayName": "data22",
-//        "file": "data22",
-//        "args": ["$IN", "$OUT"],
-//        "score": 10
-//      },
-//      {
-//        "displayName": "data23",
-//        "file": "data23",
-//        "args": ["$IN", "$OUT"],
-//        "score": 10
-//      },
-//      {
-//        "displayName": "data24",
-//        "file": "data24",
-//        "args": ["$IN", "$OUT"],
-//        "score": 10
-//      },
-//      {
-//        "displayName": "data25",
-//        "file": "data25",
-//        "args": ["$IN", "$OUT"],
-//        "score": 10
-//      },
-//      {
-//        "displayName": "data26",
-//        "file": "data26",
-//        "args": ["$IN", "$OUT"],
-//        "score": 10
-//      },
-//      {
-//        "displayName": "data27",
-//        "file": "data27",
-//        "args": ["$IN", "$OUT"],
-//        "score": 10
-//      },
-//      {
-//        "displayName": "data28",
-//        "file": "data28",
-//        "args": ["$IN", "$OUT"],
-//        "score": 10
-//      },
-//      {
-//        "displayName": "data29",
-//        "file": "data29",
-//        "args": ["$IN", "$OUT"],
-//        "score": 10
-//      },
-//      {
-//        "displayName": "data30",
-//        "file": "data30",
-//        "args": ["$IN", "$OUT"],
-//        "score": 10
-//      },
-//      {
-//        "displayName": "data31",
-//        "file": "data31",
-//        "args": ["$IN", "$OUT"],
-//        "score": 10
-//      },
-//      {
-//        "displayName": "data32",
-//        "file": "data32",
-//        "args": ["$IN", "$OUT"],
-//        "score": 10
-//      },
-//      {
-//        "displayName": "data33",
-//        "file": "data33",
-//        "args": ["$IN", "$OUT"],
-//        "score": 10
-//      },
-//      {
-//        "displayName": "data34",
-//        "file": "data34",
-//        "args": ["$IN", "$OUT"],
-//        "score": 10
-//      }
+        "displayName": "Test 10",
+        "file": "out10",
+        "args": ["task2", "$SRC_DIR/teste/dir1/dir4", "--out=$OUT"],
+        "score": 2
+      }
     ]
   },
   "commit_checker": {
