@@ -41,8 +41,9 @@ type StyleChecker struct {
 }
 
 type ModuleConfig struct {
-	TempPath       string `json:"temp_path"`
-	RunValgrind    bool   `json:"run_valgrind"`
+	TempPath       string            `json:"temp_path"`
+	RunValgrind    bool              `json:"run_valgrind"`
+	Macros         map[string]string `json:"macros"`
 	*RefChecker    `json:"ref_checker"`
 	*CommitChecker `json:"commit_checker"`
 	*MemoryChecker `json:"memory_checker"`

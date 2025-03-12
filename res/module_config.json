@@ -4,6 +4,13 @@
   "temp_path": "./.checker_temp",
   "run_valgrind": false,
 
+  // Please avoid cyclic macros
+  "macros": {
+    "MACRO": "test123",
+    "TEST_DIR": "$SRC_DIR/teste",
+    "TEST_TEST_DIR": "$TEST_DIR/teste2"
+  },
+
   "ref_checker": {
     "run_after": [],
     "input_path": "./path/to/exec", // might convert to enums?
