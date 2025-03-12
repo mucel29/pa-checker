@@ -18,61 +18,61 @@
       {
         "displayName": "Test 01",
         "file": "out1",
-        "args": ["task1", "Ana", "-m", "-n=100", "--file=$SRC_DIR/teste/dir2/in1.txt", "--out=$OUT"],
+        "args": ["task1", "Ana", "-m", "-n=100", "--file=$TEST_DIR/dir2/in1.txt", "--out=$OUT"],
         "score": 2
       },
       {
         "displayName": "Test 02",
         "file": "out2",
-        "args": ["task1", "Ana", "are", "mere", "--file=$SRC_DIR/teste/dir1/dir4/in2.txt", "--out=$OUT"],
+        "args": ["task1", "Ana", "are", "mere", "--file=$TEST_DIR/dir1/dir4/in2.txt", "--out=$OUT"],
         "score": 2
       },
       {
         "displayName": "Test 03",
         "file": "out3",
-        "args": ["task1", "argument1", "argument2", "-ab", "--file=$SRC_DIR/teste/dir1/in3.txt", "--out=$OUT"],
+        "args": ["task1", "argument1", "argument2", "-ab", "--file=$TEST_DIR/dir1/in3.txt", "--out=$OUT"],
         "score": 2
       },
       {
         "displayName": "Test 04",
         "file": "out4",
-        "args": ["task1", "argument2", "-bc", "-d", "--file=$SRC_DIR/teste/dir1/dir4/in4.txt", "--out=$OUT"],
+        "args": ["task1", "argument2", "-bc", "-d", "--file=$TEST_DIR/dir1/dir4/in4.txt", "--out=$OUT"],
         "score": 2
       },
       {
         "displayName": "Test 05",
         "file": "out5",
-        "args": ["task1", "argument", "--arg", "-b", "100", "--file=$SRC_DIR/teste/in5.txt", "--out=$OUT"],
+        "args": ["task1", "argument", "--arg", "-b", "100", "--file=$TEST_DIR/in5.txt", "--out=$OUT"],
         "score": 2
       },
       {
         "displayName": "Test 06",
         "file": "out6",
-        "args": ["task2", "$SRC_DIR/teste", "--out=$OUT"],
+        "args": ["task2", "$TEST_DIR", "--out=$OUT"],
         "score": 2
       },
       {
         "displayName": "Test 07",
         "file": "out7",
-        "args": ["task2", "$SRC_DIR/teste", "-r", "--out=$OUT"],
+        "args": ["task2", "$TEST_DIR", "-r", "--out=$OUT"],
         "score": 2
       },
       {
         "displayName": "Test 08",
         "file": "out8",
-        "args": ["task2", "$SRC_DIR/teste", "-h", "--out=$OUT"],
+        "args": ["task2", "$TEST_DIR", "-h", "--out=$OUT"],
         "score": 2
       },
       {
         "displayName": "Test 09",
         "file": "out9",
-        "args": ["task2", "$SRC_DIR/teste", "-rh", "--out=$OUT"],
+        "args": ["task2", "$TEST_DIR", "-rh", "--out=$OUT"],
         "score": 2
       },
       {
         "displayName": "Test 10",
         "file": "out10",
-        "args": ["task2", "$SRC_DIR/teste/dir1", "--out=$OUT"],
+        "args": ["task2", "$TEST_DIR/dir1", "--out=$OUT"],
         "score": 2
       }
     ]
