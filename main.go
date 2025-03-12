@@ -42,7 +42,7 @@ func main() {
 		log.Fatalln("FATAL ERROR DETECTED! " + err.Error() + "\n ABORTING!")
 	}
 
-	//TODO?: make this return an error as well?
+	// TODO?: make this return an error as well?
 	m.Check()
 
 	if useInteractive {

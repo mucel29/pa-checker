@@ -27,20 +27,22 @@ func (m *Manager) checkCapabilities() error {
 
 	if _, err := exec.LookPath("valgrind"); err != nil {
 		utils.Log("[ERR] valgrind")
-		return errors.New("ERROR! Couldn't find valgrind on your system!")
-	} else {
-		utils.Log("[OK] valgrind")
-		m.capabilities["valgrind"] = true
+		return errors.New("Couldn't find valgrind on your system!")
 	}
+
+	utils.Log("[OK] valgrind")
+	m.capabilities["valgrind"] = true
+	
 
 	// Check for cppcheck
 	if _, err := exec.LookPath("cppcheck"); err != nil {
 		utils.Log("[ERR] cppcheck")
-		return errors.New("ERROR! Couldn't find cppcheck on your system!")
-	} else {
-		utils.Log("[OK] cppcheck")
-		m.capabilities["cppcheck"] = true
+		return errors.New("Couldn't find cppcheck on your system!")
 	}
+
+	utils.Log("[OK] cppcheck")
+	m.capabilities["cppcheck"] = true
+	
 
 	return nil
 }
