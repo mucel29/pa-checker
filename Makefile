@@ -1,6 +1,7 @@
 BINARY_NAME=checker
 SOURCE_DIR=./src
-PKGS = ./...
+PKGS = 	$(shell find $(SOURCE_DIR) -name '*.go' )        \
+		./main.go
 BIN_DIR=./bin
 
 # OS detection
@@ -37,9 +38,6 @@ lint:
 	GO_GOLANGCI_LINT_CLI_LINT_MODE=project
 	GO_GOLANGCI_LINT_ARGUMENTS=["./.."]
 	golangci-lint run -c .golangci.yml
-
-deploy:
-	GOOS=$(OS) GOARCH=$(ARCH) go build -o $(BIN_NAME) ./main.go
 
 deploy:
 	GOOS=$(OS) GOARCH=$(ARCH) go build -o $(BIN_NAME) ./main.go
