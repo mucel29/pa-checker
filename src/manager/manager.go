@@ -120,7 +120,38 @@ func runDeferred(deferred []checkermodules.CheckerModule, finished map[string]bo
 	}
 }
 
+func updateMacros() {
+	// Output path
+	outPath, err := filepath.Abs(utils.Config.OutputPath)
+	if err == nil {
+		utils.ConfigMacros["OUT_DIR"] = outPath
+	}
+
+	// Make sure input path exists
+	inPath, err := filepath.Abs(utils.Config.InputPath)
+	if err == nil {
+		if _, err := os.Stat(inPath); err == nil {
+			utils.ConfigMacros["IN_DIR"] = inPath
+		}
+	}
+
+	srcPath, err := filepath.Abs(utils.Config.SourcePath)
+	if err == nil {
+		if _, err := os.Stat(srcPath); err == nil {
+			utils.ConfigMacros["SRC_DIR"] = srcPath
+		}
+	}
+
+	// Load module config macros
+	for k, v := range utils.Config.Macros {
+		utils.ConfigMacros[k] = v
+	}
+
+}
+
 func (m *Manager) RetrieveConfig() {
+	defer updateMacros()
+
 	if _, err := os.Stat(utils.UserConfigPath); err == nil {
 		// Read the config from there
 		data, err := os.ReadFile(utils.UserConfigPath)
@@ -183,11 +214,6 @@ func (m *Manager) Run() error {
 
 	start := time.Now()
 
-	outPath, err := filepath.Abs(utils.Config.OutputPath)
-	if err != nil {
-		return err
-	}
-
 	// Make sure temp path exists
 	tempPath, err := filepath.Abs(utils.Config.TempPath)
 	if err != nil {
@@ -200,18 +226,8 @@ func (m *Manager) Run() error {
 		}
 	}
 
-	// Make sure input path exists
-	inPath, err := filepath.Abs(utils.Config.InputPath)
-	if err != nil {
-		return err
-	}
-
-	if _, err := os.Stat(inPath); err != nil {
-		return err
-	}
-
 	// Make sure output path exists
-	if err := os.Mkdir(outPath, 0777); err != nil {
+	if err := os.Mkdir(utils.ConfigMacros["OUT_DIR"], 0777); err != nil {
 		if !errors.Is(err, os.ErrExist) {
 			return err
 		}
@@ -223,21 +239,19 @@ func (m *Manager) Run() error {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+
+			// Create Context macros
+			contextMacros := map[string]string{
+				"FILE": test.File,
+				"IN":   fmt.Sprintf("%s/%s.in", utils.ConfigMacros["IN_DIR"], test.File),
+				"OUT":  fmt.Sprintf("%s/%s.out", utils.ConfigMacros["OUT_DIR"], test.File),
+			}
+
 			var processedArgs []string
 
 			// Process args
 			for _, arg := range test.Args {
-				switch arg {
-				case "$OUT":
-					absPath := fmt.Sprintf("%s/%s.out", outPath, test.File)
-					processedArgs = append(processedArgs, absPath)
-				case "$IN":
-					absPath := fmt.Sprintf("%s/%s.in", inPath, test.File)
-					processedArgs = append(processedArgs, absPath)
-				default:
-					processedArgs = append(processedArgs, arg)
-				}
-
+				processedArgs = append(processedArgs, utils.ExpandMacros(arg, contextMacros))
 			}
 
 			var cmd *exec.Cmd
@@ -262,6 +276,8 @@ func (m *Manager) Run() error {
 			} else {
 				cmd = exec.Command(utils.Config.ExecutablePath, processedArgs...) //nolint:gosec
 			}
+
+			// fmt.Printf("%d: %s %s\n\n", i+1, utils.Config.ExecutablePath, strings.Join(processedArgs, " "))
 
 			var stdout, stderr bytes.Buffer
 			cmd.Stdout = &stdout

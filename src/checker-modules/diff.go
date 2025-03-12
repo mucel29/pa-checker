@@ -110,6 +110,7 @@ func (dm *DiffModule) Display(d *display.Display) {
 	currentCol := 0
 
 	for _, result := range dm.results {
+		utils.Log(result.filename)
 		if currentRow >= MaxRow && currentCol < MaxCol {
 			currentRow = 0
 			currentCol++
@@ -317,14 +318,16 @@ func (dm *DiffModule) compareFilesInFolders(folder1, folder2 string) int {
 	ar.Results = make([]FileCompareResult, len(utils.Config.Tests))
 
 	for i, test := range utils.Config.Tests {
+		utils.Log(strconv.Itoa(i))
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 
-			file1 := fmt.Sprintf("%s/%s.ref", folder1, test.DisplayName)
-			file2 := fmt.Sprintf("%s/%s.out", folder2, test.DisplayName)
+			file1 := fmt.Sprintf("%s/%s.ref", folder1, test.File)
+			file2 := fmt.Sprintf("%s/%s.out", folder2, test.File)
 
-			// utils.Log(file1)
+			utils.Log(file1)
+			utils.Log(file2)
 
 			// TODO: change the return into some kind of error
 
@@ -345,6 +348,8 @@ func (dm *DiffModule) compareFilesInFolders(folder1, folder2 string) int {
 			if matched {
 				ar.inc()
 			}
+
+			utils.Log("Checked" + test.DisplayName)
 
 			ar.add(i, FileCompareResult{
 				filename:        test.DisplayName,

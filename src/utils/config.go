@@ -2,8 +2,10 @@ package utils
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 )
 
 const (
@@ -65,4 +67,32 @@ func SaveUserConfig() {
 
 func Log(str string) {
 	logger.Info(str)
+}
+
+var ConfigMacros = make(map[string]string)
+
+func convertMacros(srcStr string, contextMacros map[string]string) string {
+	// Replace implicit macros
+	for k, v := range ConfigMacros {
+		srcStr = strings.ReplaceAll(srcStr, fmt.Sprintf("$%s", k), v)
+	}
+
+	// Replace context macros
+	for k, v := range contextMacros {
+		srcStr = strings.ReplaceAll(srcStr, fmt.Sprintf("$%s", k), v)
+	}
+
+	return srcStr
+}
+
+// ExpandMacros No cyclic macros please!
+func ExpandMacros(str string, contextMacros map[string]string) string {
+	lastStr := ""
+
+	for lastStr != str {
+		lastStr = str
+		str = convertMacros(str, contextMacros)
+	}
+
+	return str
 }
