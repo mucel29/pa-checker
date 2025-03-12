@@ -34,10 +34,12 @@ vet:
 	go vet ./...
 
 lint:
-	golangci-lint run -c .golangci.yml $(PKGS)
+	GO_GOLANGCI_LINT_CLI_LINT_MODE=project
+	GO_GOLANGCI_LINT_ARGUMENTS=["./.."]
+	golangci-lint run -c .golangci.yml
 
-staticcheck:
-	staticcheck $(PKGS)
+deploy:
+	GOOS=$(OS) GOARCH=$(ARCH) go build -o $(BIN_NAME) ./main.go
 
 deploy:
 	GOOS=$(OS) GOARCH=$(ARCH) go build -o $(BIN_NAME) ./main.go

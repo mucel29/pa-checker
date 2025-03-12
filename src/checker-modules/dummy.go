@@ -1,22 +1,30 @@
-package checker_modules
+package checkermodules
 
 import (
 	"checker-pa/src/display"
+	"crypto/rand"
 	"fmt"
-	"math/rand"
+	"math/big"
 	"strconv"
 )
 
 type DummyModule struct {
-	totalScore uint32
+	totalScore int
 	uniqueName string
+	randGen    *big.Int
 	ModuleOutput
 }
 
 func NewDummyModule() *DummyModule {
+
 	newDummy := &DummyModule{}
 	newDummy.totalScore = 0
-	newDummy.uniqueName = "dummy-" + fmt.Sprintf("%x", rand.Intn(255))
+	var err error
+	newDummy.randGen, err = rand.Int(rand.Reader, big.NewInt(27))
+	if err != nil {
+		panic(err)
+	}
+	newDummy.uniqueName = "dummy-" + fmt.Sprintf("%x", newDummy.randGen.Int64()%255)
 
 	return newDummy
 }
@@ -37,12 +45,12 @@ func (dummy *DummyModule) Run() {
 			dummy.Issues,
 			ModuleIssue{
 				Message: "Lorem ipsum dolor sit amet",
-				Line:    uint32(rand.Intn(255)),
-				Col:     uint32(rand.Intn(100)),
+				Line:    int(dummy.randGen.Int64() % 255),
+				Col:     int(dummy.randGen.Int64() % 100),
 			})
 	}
 
-	dummy.totalScore = uint32(rand.Intn(70))
+	dummy.totalScore = int(dummy.randGen.Int64() % 70)
 }
 
 func (dummy *DummyModule) Display(d *display.Display) {
@@ -71,6 +79,6 @@ func (dummy *DummyModule) Reset() {
 	dummy.Issues = nil
 }
 
-func (dummy *DummyModule) Score() uint32 {
+func (dummy *DummyModule) Score() int {
 	return dummy.totalScore
 }

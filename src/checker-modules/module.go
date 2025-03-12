@@ -1,4 +1,4 @@
-package checker_modules
+package checkermodules
 
 import (
 	"checker-pa/src/display"
@@ -7,8 +7,8 @@ import (
 
 type ModuleIssue struct {
 	File        string
-	Line        uint32
-	Col         uint32
+	Line        int
+	Col         int
 	Message     string
 	ShowLineCol bool
 	Critical    bool
@@ -31,7 +31,7 @@ type CheckerModule interface {
 	Display(d *display.Display)
 	Dump()
 	Reset()
-	Score() uint32
+	Score() int
 }
 
 func (err *ModuleError) String() string {
@@ -46,4 +46,15 @@ func (err *ModuleError) String() string {
 	}
 
 	return message
+}
+
+func (err *ModuleError) groupIssues(groupBy func(issue *ModuleIssue) string) map[string][]ModuleIssue {
+
+	group := make(map[string][]ModuleIssue)
+
+	for _, issue := range err.Issues {
+		group[groupBy(&issue)] = append(group[groupBy(&issue)], issue)
+	}
+
+	return group
 }

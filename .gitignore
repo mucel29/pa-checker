@@ -3,6 +3,10 @@
 
 bin/
 temp/
+.checker_temp/
 
 .DS_Store
 log.txt
+
+config.json
+config*.json

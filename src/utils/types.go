@@ -4,6 +4,7 @@ import "encoding/xml"
 
 type Test struct {
 	DisplayName string   `json:"displayName"`
+	File        string   `json:"file"`
 	Args        []string `json:"args"`
 	Ordered     bool     `json:"ordered"`
 	WhiteSpace  bool     `json:"whitespace"`
@@ -31,15 +32,18 @@ type MemoryChecker struct {
 }
 
 type StyleChecker struct {
-	RunAfter      []string `json:"run_after"`
-	ScoreTreshold int      `json:"score_treshold"`
-	Tresholds     []struct {
+	RunAfter       []string `json:"run_after"`
+	ScoreThreshold int      `json:"score_threshold"`
+	Thresholds     []struct {
 		Under int `json:"under"`
 		Score int `json:"score"`
-	} `json:"tresholds"`
+	} `json:"thresholds"`
 }
 
 type ModuleConfig struct {
+	TempPath       string            `json:"temp_path"`
+	RunValgrind    bool              `json:"run_valgrind"`
+	Macros         map[string]string `json:"macros"`
 	*RefChecker    `json:"ref_checker"`
 	*CommitChecker `json:"commit_checker"`
 	*MemoryChecker `json:"memory_checker"`
@@ -49,8 +53,10 @@ type ModuleConfig struct {
 type UserConfig struct {
 	SourcePath     string `json:"source_path"`
 	ExecutablePath string `json:"executable_path"`
+	InputPath      string `json:"input_path"`
 	OutputPath     string `json:"output_path"`
 	RefPath        string `json:"ref_path"`
+	ForwardPath    string `json:"forward_path"`
 }
 
 type CppcheckResults struct {

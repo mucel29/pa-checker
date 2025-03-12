@@ -1,4 +1,4 @@
-package checker_modules
+package checkermodules
 
 var AvailableModules = map[string]CheckerModule{
 	"ref_checker":    NewDiffModule(),

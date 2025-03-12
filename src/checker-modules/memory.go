@@ -1,13 +1,17 @@
-package checker_modules
+package checkermodules
 
 import (
 	"checker-pa/src/display"
 	"checker-pa/src/utils"
 	"encoding/xml"
 	"fmt"
+	"github.com/gdamore/tcell/v2"
+	"github.com/rivo/tview"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 const (
@@ -52,11 +56,10 @@ type Frame struct {
 }
 
 type memoryCheckerIssue struct {
-	message    string
-	function   string
-	file       string
-	line       int
-	isCritical bool
+	message  string
+	function string
+	file     string
+	line     int
 }
 
 func (mci *memoryCheckerIssue) String() string {
@@ -66,10 +69,78 @@ func (mci *memoryCheckerIssue) String() string {
 	return str
 }
 
+type TestMemoryResult struct {
+	testName    string
+	criticalMsg string
+	issues      []memoryCheckerIssue
+	warnings    []memoryCheckerIssue
+}
+
+type TestStatus int
+
+const (
+	OK TestStatus = iota
+	WARNING
+	ISSUE
+	CRITICAL
+)
+
+func (tmr *TestMemoryResult) GetStatus() TestStatus {
+	if tmr.criticalMsg != "" {
+		return CRITICAL
+	}
+
+	if len(tmr.issues) > 0 {
+		return ISSUE
+	} else if len(tmr.warnings) > 0 {
+		return WARNING
+	}
+
+	return OK
+}
+
+func (tmr *TestMemoryResult) String() string {
+
+	if tmr.GetStatus() == OK {
+		return fmt.Sprintf("%s - OK", tmr.testName)
+	}
+
+	str := strings.Builder{}
+
+	if tmr.GetStatus() == CRITICAL {
+		str.WriteString(fmt.Sprintf("%s - CRITICAL ERROR\n\n", tmr.testName))
+		str.WriteString(tmr.criticalMsg + "\n")
+		return str.String()
+	}
+
+	if len(tmr.issues) > 0 {
+		str.WriteString(fmt.Sprintf("%s - Issues\n\n", tmr.testName))
+
+		for _, issue := range tmr.issues {
+			str.WriteString(issue.String() + "\n\n")
+		}
+
+		if len(tmr.warnings) > 0 {
+			str.WriteString(strings.Repeat("-", 20) + "\n\n")
+		}
+
+	}
+
+	if len(tmr.warnings) > 0 {
+		str.WriteString(fmt.Sprintf("%s - Warnings\n\n", tmr.testName))
+
+		for _, warning := range tmr.warnings {
+			str.WriteString(warning.String() + "\n\n")
+		}
+
+	}
+
+	return str.String()
+}
+
 type MemoryChecker struct {
-	score    uint32
-	issues   []memoryCheckerIssue
-	warnings []memoryCheckerIssue
+	score int
+	tests []TestMemoryResult
 }
 
 func (*MemoryChecker) GetName() string {
@@ -81,156 +152,210 @@ func (*MemoryChecker) WaitingFor() []string {
 }
 
 func (mc *MemoryChecker) Reset() {
-	mc.issues = nil
+	mc.tests = nil
 	mc.score = 0
 }
 
-func (mc *MemoryChecker) Score() uint32 {
+func (mc *MemoryChecker) Score() int {
 	return mc.score
 }
 
-func (mc *MemoryChecker) warningsString() string {
-	warnMsg := "Found some warnings!" + "\n"
-	for _, warning := range mc.warnings {
-		warnMsg += warning.String() + "\n"
+func (mc *MemoryChecker) getTotalIssues() int {
+	totalIssues := 0
+	for _, test := range mc.tests {
+		totalIssues += len(test.issues)
 	}
 
-	return warnMsg
+	return totalIssues
 }
 
-func (mc *MemoryChecker) issuesString() string {
-	issueMsg := "Found issues!" + "\n"
-	for _, issue := range mc.issues {
-		issueMsg += issue.String() + "\n"
+func (mc *MemoryChecker) getStatus() TestStatus {
+
+	currentGravity := OK
+
+	for _, test := range mc.tests {
+		if test.GetStatus() > currentGravity {
+			currentGravity = test.GetStatus()
+		}
 	}
 
-	return issueMsg
+	return currentGravity
 }
 
 func (mc *MemoryChecker) Display(d *display.Display) {
-	d.PrintPage(0, "Memory checker summary\n", "")
+	d.CurrentContainer().Title("Memory checker - "+strconv.Itoa(int(mc.score)), tview.AlignLeft)
 
-	if len(mc.issues) == 1 && mc.issues[0].isCritical {
-		d.Println("Critical error detected!")
-		d.Println(mc.issues[0].message)
-		return
-	}
-
-	if len(mc.issues) == 0 && len(mc.warnings) == 0 {
+	if mc.getStatus() == OK {
+		// Disable border
+		d.PrintPage(0, "$nb", "")
 		d.Println(
 			fmt.Sprintf("No issues found! Great job you got %d/%d :)!",
 				mc.score, mc.score))
 		return
 	}
 
-	if len(mc.issues) == 0 {
+	fileTable := tview.NewTable()
 
-		d.Println(mc.warningsString())
+	fileTable.SetInputCapture(utils.TableSelector(len(mc.tests), fileTable))
 
-		d.Println(
-			fmt.Sprintf("Your score is %d/%d!",
-				mc.score, utils.Config.MemoryChecker.Score))
-		return
+	currentRow := 0
+	currentCol := 0
+
+	for _, test := range mc.tests {
+		if currentRow >= MaxRow && currentCol < MaxCol {
+			currentRow = 0
+			currentCol++
+		}
+
+		cell := tview.NewTableCell(test.testName)
+
+		color := "[white]"
+
+		switch test.GetStatus() {
+		case OK:
+			cell.SetTextColor(tcell.ColorGreen)
+			color = "[green]"
+		case WARNING:
+			cell.SetTextColor(tcell.ColorYellow)
+			color = "[yellow]"
+		case ISSUE:
+			cell.SetTextColor(tcell.ColorRed)
+			color = "[red]"
+		case CRITICAL:
+			cell.SetTextColor(tcell.ColorDarkRed)
+			color = "[red]"
+		}
+
+		cell.SetSelectable(true)
+		cell.SetClickedFunc(func() bool {
+
+			// TODO: don't add new page, replace container with the view and pop it on enter
+
+			d.NewPage(color+test.testName, true)
+			d.CurrentContainer().SetDirection(tview.FlexColumn)
+			d.CurrentContainer().SyncSections(true)
+			d.AddWritableContainer(d.CurrentContainer(), 0, 1)
+
+			d.PrintPage(0, "$nb", "")
+
+			// Disable border
+			d.Println(test.String())
+
+			d.App.SetFocus(d.CurrentContainer().Container)
+			d.CurrentContainer().WrapInput(d.CurrentContainer().Sections[0])
+
+			return false
+		})
+		fileTable.SetCell(currentRow, currentCol, cell)
+
+		currentRow++
 	}
 
-	//d.Println("Found issues!")
-	//for _, issue := range mc.issues {
-	//	d.Println(issue.String())
-	//}
+	firstCell := fileTable.GetCell(0, 0)
 
-	d.Println(mc.issuesString())
+	textColor, _, _ := firstCell.Style.Decompose()
 
-	if len(mc.warnings) != 0 {
-		d.Println(mc.warningsString())
+	// Create reverse style
+	firstCell.SetBackgroundColor(textColor)
+	firstCell.SetTextColor(tcell.ColorWhite)
 
-		//d.Println("Found some warnings!")
-		//for _, warning := range mc.warnings {
-		//	errMsg := warning.file + ":" + strconv.Itoa(warning.line) + " inside " + warning.function + " "
-		//	errMsg += warning.message
-		//	d.Println(errMsg)
-		//}
-	}
+	d.CurrentContainer().AddPrimitive(fileTable, true, 0, 1)
 
-	d.Println(
-		fmt.Sprintf("Your score is %d/%d!",
-			mc.score, utils.Config.MemoryChecker.Score))
-	return
 }
 
 func (mc *MemoryChecker) Dump() {
 	fmt.Printf("===== %s - %d =====\n\n", "Memory checker", mc.score)
 
-	if len(mc.issues) == 1 && mc.issues[0].isCritical {
-		fmt.Println("Critical error detected!")
-		fmt.Println(mc.issues[0].message)
-		return
-	}
-
-	if len(mc.warnings) > 0 {
-		fmt.Println(mc.warningsString())
-	}
-
-	if len(mc.issues) > 0 {
-		fmt.Println(mc.issuesString())
-	}
-
-	if len(mc.issues) == 0 && len(mc.warnings) == 0 {
+	if mc.getStatus() == OK {
 		fmt.Println("No issues found! Great job :)!")
+	}
+
+	for i, test := range mc.tests {
+		fmt.Println(test.String())
+
+		if i < len(mc.tests)-1 {
+			fmt.Println(strings.Repeat("=", 20) + "\n")
+		}
+
 	}
 
 	fmt.Println()
 }
 
 func (mc *MemoryChecker) Run() {
-	//MOCK DATA
-	//TODO: remove this later
-	data := []byte{}
+	mc.score = utils.Config.MemoryChecker.Score
 
-	data, err := os.ReadFile("./temp/foobar.xml")
-	if err != nil {
-		panic(err)
+	// Preallocate to keep order and avoid conflicts in the goroutines
+	mc.tests = make([]TestMemoryResult, len(utils.Config.Tests))
+
+	// WaitGroup for goroutines
+	wg := sync.WaitGroup{}
+
+	for i, test := range utils.Config.Tests {
+
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			absTempPath, err := filepath.Abs(utils.Config.TempPath)
+			if err != nil {
+				panic(err)
+			}
+
+			data, err := os.ReadFile(fmt.Sprintf("%s/%s.xml", absTempPath, test.File))
+			if err != nil {
+				panic(err)
+			}
+
+			testResult := TestMemoryResult{testName: test.DisplayName}
+
+			var output ValgrindOutput
+			err = xml.Unmarshal(data, &output)
+			if err != nil {
+				testResult.criticalMsg = err.Error()
+				mc.tests = append(mc.tests, testResult)
+				return
+			}
+
+			idx := len(output.Errors) - 1
+			for idx > -1 && output.Errors[idx].Kind == definitelyLeaked {
+				mci := memoryCheckerIssue{message: output.Errors[idx].XWhat.Text}
+				mci.file = output.Errors[idx].Stack.Frames[1].File
+				mci.function = output.Errors[idx].Stack.Frames[1].Fn
+				mci.line = output.Errors[idx].Stack.Frames[1].Line
+
+				testResult.issues = append(testResult.issues, mci)
+
+				idx--
+			}
+
+			for idx > -1 {
+				if output.Errors[idx].isUserGenerated() {
+					w := memoryCheckerIssue{message: output.Errors[idx].What}
+					w.file = output.Errors[idx].Stack.Frames[1].File
+					w.function = output.Errors[idx].Stack.Frames[1].Fn
+					w.line = output.Errors[idx].Stack.Frames[1].Line
+
+					testResult.warnings = append(testResult.warnings, w)
+				}
+
+				idx--
+			}
+
+			mc.tests[i] = testResult
+
+		}()
+
 	}
 
-	var output ValgrindOutput
-	err = xml.Unmarshal(data, &output)
-	if err != nil {
-		issue := memoryCheckerIssue{message: "CRITICAL ERROR! " + err.Error(), isCritical: true}
-		mc.issues = append(mc.issues, issue)
-		return
-	}
-
-	mc.score = uint32(utils.Config.MemoryChecker.Score)
-
-	idx := len(output.Errors) - 1
-	for idx > -1 && output.Errors[idx].Kind == definitelyLeaked {
-		mci := memoryCheckerIssue{message: output.Errors[idx].XWhat.Text}
-		mci.file = output.Errors[idx].Stack.Frames[1].File
-		mci.function = output.Errors[idx].Stack.Frames[1].Fn
-		mci.line = output.Errors[idx].Stack.Frames[1].Line
-
-		mc.issues = append(mc.issues, mci)
-
-		idx--
-	}
-
-	for idx > -1 {
-		if output.Errors[idx].isUserGenerated() {
-			w := memoryCheckerIssue{message: output.Errors[idx].What}
-			w.file = output.Errors[idx].Stack.Frames[1].File
-			w.function = output.Errors[idx].Stack.Frames[1].Fn
-			w.line = output.Errors[idx].Stack.Frames[1].Line
-
-			mc.warnings = append(mc.warnings, w)
-		}
-
-		idx--
-	}
+	wg.Wait()
 
 	deduction := 2
-	if int32(mc.score)-int32(len(mc.issues)*deduction) <= 0 {
+	if mc.score-mc.getTotalIssues()*deduction <= 0 {
 		mc.score = 0
 	} else {
-		mc.score -= uint32(len(mc.issues)) * uint32(deduction)
+		mc.score -= mc.getTotalIssues() * deduction
 	}
 
 }

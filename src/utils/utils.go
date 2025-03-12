@@ -7,7 +7,7 @@ import (
 
 var commentRegex = regexp.MustCompile("//.*")
 
-func newUserConfig(source string) (*UserConfig, error) {
+func NewUserConfig(source string) (*UserConfig, error) {
 	var m UserConfig
 	newSource := commentRegex.ReplaceAllString(source, "")
 	err := json.Unmarshal([]byte(newSource), &m)

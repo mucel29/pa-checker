@@ -1,4 +1,4 @@
-package checker_modules
+package checkermodules
 
 import (
 	"bufio"
@@ -7,9 +7,12 @@ import (
 	"checker-pa/src/utils"
 	"encoding/xml"
 	"fmt"
+	"github.com/gdamore/tcell/v2"
+	"github.com/rivo/tview"
 	"math"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 
 	"github.com/fatih/color"
@@ -17,7 +20,7 @@ import (
 
 type StyleChecker struct {
 	ModuleOutput
-	totalScore int32
+	totalScore int
 }
 
 func (sc *StyleChecker) GetName() string {
@@ -30,17 +33,68 @@ func (sc *StyleChecker) WaitingFor() []string {
 
 func (sc *StyleChecker) Display(d *display.Display) {
 	// Display module summary
-	d.PrintPage(0, "Style checker Summary\n", "")
-	d.Println("\nTotal module score: " + fmt.Sprint(sc.totalScore) + "\n")
+	d.CurrentContainer().Title("Style checker - "+strconv.Itoa(int(sc.totalScore)), tview.AlignLeft)
 
-	// Display errors
-	if len(sc.Issues) > 0 {
-		err := ModuleError{
-			ErrorMessage: "Style issues found in the code",
-			Issues:       sc.Issues,
-		}
-		d.PrintPage(1, "Style checker errors\n", err.String())
+	groups := sc.ModuleError.groupIssues(func(issue *ModuleIssue) string {
+		return issue.File
+	})
+
+	if groups[""] != nil {
+		d.PrintPage(0, "$nb", groups[""][0].Message)
+		return
 	}
+
+	fileTable := tview.NewTable()
+
+	fileTable.SetInputCapture(utils.TableSelector(len(groups), fileTable))
+
+	currentRow := 0
+	currentCol := 0
+
+	for file := range groups {
+		if currentRow >= MaxRow && currentCol < MaxCol {
+			currentRow = 0
+			currentCol++
+		}
+
+		cell := tview.NewTableCell(file)
+
+		cell.SetTextColor(tcell.ColorDarkCyan)
+
+		cell.SetSelectable(true)
+		cell.SetClickedFunc(func() bool {
+
+			d.NewPage("[darkcyan]"+file, true)
+			d.CurrentContainer().SetDirection(tview.FlexColumn)
+			d.CurrentContainer().SyncSections(true)
+			d.AddWritableContainer(d.CurrentContainer(), 0, 1)
+
+			d.PrintPage(0, "$nb", "")
+
+			for _, issue := range groups[file] {
+				d.Println(issue.Message)
+			}
+
+			d.App.SetFocus(d.CurrentContainer().Container)
+			d.CurrentContainer().WrapInput(d.CurrentContainer().Sections[0])
+
+			return false
+		})
+		fileTable.SetCell(currentRow, currentCol, cell)
+
+		currentRow++
+	}
+
+	firstCell := fileTable.GetCell(0, 0)
+
+	textColor, _, _ := firstCell.Style.Decompose()
+
+	// Create reverse style
+	firstCell.SetBackgroundColor(textColor)
+	firstCell.SetTextColor(tcell.ColorWhite)
+
+	d.CurrentContainer().AddPrimitive(fileTable, true, 0, 1)
+
 }
 
 func (sc *StyleChecker) Dump() {
@@ -54,12 +108,12 @@ func (sc *StyleChecker) Reset() {
 	sc.totalScore = 0
 }
 
-func (sc *StyleChecker) Score() uint32 {
+func (sc *StyleChecker) Score() int {
 	if sc.totalScore < 0 {
 		return 0
-	} else {
-		return uint32(sc.totalScore)
 	}
+
+	return sc.totalScore
 }
 
 func (sc *StyleChecker) Run() {
@@ -144,8 +198,8 @@ func (sc *StyleChecker) Run() {
 
 			sc.Issues = append(sc.Issues, ModuleIssue{
 				File:        loc.File,
-				Line:        uint32(loc.Line),
-				Col:         uint32(loc.Column),
+				Line:        int(loc.Line),
+				Col:         int(loc.Column),
 				Message:     message,
 				ShowLineCol: false,
 			})
@@ -160,9 +214,9 @@ func (sc *StyleChecker) Run() {
 // maybe based on severity and type of issues found
 // also these should be configurable in the config file
 func (sc *StyleChecker) calculateScore() {
-	baseScore := int32(100)
-	deduction := int32(len(sc.Issues) * 5) // Deduct 5 points per issue
-	sc.totalScore = int32(math.Max(0, float64(baseScore-deduction)))
+	baseScore := 100
+	deduction := len(sc.Issues) * 5 // Deduct 5 points per issue
+	sc.totalScore = int(math.Max(0, float64(baseScore-deduction)))
 }
 
 // Implementation of error formatting inspired by

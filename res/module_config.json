@@ -1,45 +1,225 @@
 // EXAMPLE MODULE CONFIG --- CHANGE LATER
 
 {
+  "temp_path": "./.checker_temp",
+  "run_valgrind": false,
+
+  // Please avoid cyclic macros
+  "macros": {
+    "MACRO": "test123",
+    "TEST_DIR": "$SRC_DIR/teste",
+    "TEST_TEST_DIR": "$TEST_DIR/teste2"
+  },
+
   "ref_checker": {
     "run_after": [],
     "input_path": "./path/to/exec", // might convert to enums?
     "tests": [
       {
-        "displayName": "test_01",
-        "args": ["arg1", "arg2", "arg3"],
-        "ordered": false,
-        "whitespace": false,
+        "displayName": "data1",
+        "file": "data1",
+        "args": ["$IN", "$OUT"],
         "score": 2
       },
       {
-        "displayName": "test_02",
-        "args": ["arg1", "arg2", "arg3"],
-        "ordered": false,
-        "whitespace": false,
+        "displayName": "data2",
+        "file": "data2",
+        "args": ["$IN", "$OUT"],
         "score": 3
       },
       {
-        "displayName": "test_03",
-        "args": ["arg1", "arg2", "arg3"],
-        "ordered": true,
-        "whitespace": false,
+        "displayName": "data3",
+        "file": "data3",
+        "args": ["$IN", "$OUT"],
         "score": 3
       },
       {
-        "displayName": "test_04",
-        "args": ["arg1", "arg2", "arg3"],
-        "ordered": true,
-        "whitespace": false,
+        "displayName": "data4",
+        "file": "data4",
+        "args": ["$IN", "$OUT"],
+
         "score": 4
       },
       {
-        "displayName": "test_05",
-        "args": ["arg1", "arg2", "arg3"],
-        "ordered": true,
-        "whitespace": true,
+        "displayName": "data5",
+        "file": "data5",
+        "args": ["$IN", "$OUT"],
         "score": 10
-      }
+      },
+      {
+        "displayName": "data6",
+        "file": "data6",
+        "args": ["$IN", "$OUT"],
+        "score": 10
+      },
+      {
+        "displayName": "data7",
+        "file": "data7",
+        "args": ["$IN", "$OUT"],
+        "score": 10
+      },
+      {
+        "displayName": "data8",
+        "file": "data8",
+        "args": ["$IN", "$OUT"],
+        "score": 10
+      },
+      {
+        "displayName": "data9",
+        "file": "data9",
+        "args": ["$IN", "$OUT"],
+        "score": 10
+      },
+      {
+        "displayName": "data10",
+        "file": "data10",
+        "args": ["$IN", "$OUT"],
+        "score": 10
+      },
+      {
+        "displayName": "data11",
+        "file": "data11",
+        "args": ["$IN", "$OUT"],
+        "score": 10
+      },
+      {
+        "displayName": "data12",
+        "file": "data12",
+        "args": ["$IN", "$OUT"],
+        "score": 10
+      },
+      {
+        "displayName": "data13",
+        "file": "data13",
+        "args": ["$IN", "$OUT"],
+        "score": 10
+      },
+      {
+        "displayName": "data14",
+        "file": "data14",
+        "args": ["$IN", "$OUT"],
+        "score": 10
+      },
+      {
+        "displayName": "data15",
+        "file": "data15",
+        "args": ["$IN", "$OUT"],
+        "score": 10
+      },
+      {
+        "displayName": "data16",
+        "file": "data16",
+        "args": ["$IN", "$OUT"],
+        "score": 10
+      },
+      {
+        "displayName": "data17",
+        "file": "data17",
+        "args": ["$IN", "$OUT"],
+        "score": 10
+      },
+      {
+        "displayName": "data18",
+        "file": "data18",
+        "args": ["$IN", "$OUT"],
+        "score": 10
+      },
+      {
+        "displayName": "data19",
+        "file": "data19",
+        "args": ["$IN", "$OUT"],
+        "score": 10
+      },
+      {
+        "displayName": "data20",
+        "file": "data20",
+        "args": ["$IN", "$OUT"],
+        "score": 10
+      }//,
+//      {
+//        "displayName": "data21",
+//        "file": "data21",
+//        "args": ["$IN", "$OUT"],
+//        "score": 10
+//      },
+//      {
+//        "displayName": "data22",
+//        "file": "data22",
+//        "args": ["$IN", "$OUT"],
+//        "score": 10
+//      },
+//      {
+//        "displayName": "data23",
+//        "file": "data23",
+//        "args": ["$IN", "$OUT"],
+//        "score": 10
+//      },
+//      {
+//        "displayName": "data24",
+//        "file": "data24",
+//        "args": ["$IN", "$OUT"],
+//        "score": 10
+//      },
+//      {
+//        "displayName": "data25",
+//        "file": "data25",
+//        "args": ["$IN", "$OUT"],
+//        "score": 10
+//      },
+//      {
+//        "displayName": "data26",
+//        "file": "data26",
+//        "args": ["$IN", "$OUT"],
+//        "score": 10
+//      },
+//      {
+//        "displayName": "data27",
+//        "file": "data27",
+//        "args": ["$IN", "$OUT"],
+//        "score": 10
+//      },
+//      {
+//        "displayName": "data28",
+//        "file": "data28",
+//        "args": ["$IN", "$OUT"],
+//        "score": 10
+//      },
+//      {
+//        "displayName": "data29",
+//        "file": "data29",
+//        "args": ["$IN", "$OUT"],
+//        "score": 10
+//      },
+//      {
+//        "displayName": "data30",
+//        "file": "data30",
+//        "args": ["$IN", "$OUT"],
+//        "score": 10
+//      },
+//      {
+//        "displayName": "data31",
+//        "file": "data31",
+//        "args": ["$IN", "$OUT"],
+//        "score": 10
+//      },
+//      {
+//        "displayName": "data32",
+//        "file": "data32",
+//        "args": ["$IN", "$OUT"],
+//        "score": 10
+//      },
+//      {
+//        "displayName": "data33",
+//        "file": "data33",
+//        "args": ["$IN", "$OUT"],
+//        "score": 10
+//      },
+//      {
+//        "displayName": "data34",
+//        "file": "data34",
+//        "args": ["$IN", "$OUT"],
+//        "score": 10
+//      }
     ]
   },
   "commit_checker": {

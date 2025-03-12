@@ -23,7 +23,6 @@ lint:
     - go install honnef.co/go/tools/cmd/staticcheck@latest
     - make vet
     - make lint
-    - make staticcheck
 
 .go-build:
   before_script:
@@ -35,6 +34,9 @@ lint:
 build:linux:amd64:
   extends: .go-build
   stage: build
+  rules:
+    # Runs only on tagged commits e.g: git tag <tag name>; git push origin tag <tag name>
+    - if: $CI_COMMIT_TAG
   script:
     - make deploy OS=linux ARCH=amd64 BIN_NAME=${APP_NAME}-linux-amd64
   artifacts:
@@ -44,6 +46,9 @@ build:linux:amd64:
 build:darwin:amd64:
   extends: .go-build
   stage: build
+  rules:
+    # Runs only on tagged commits e.g: git tag <tag name>; git push origin tag <tag name>
+    - if: $CI_COMMIT_TAG
   script:
     - make deploy OS=darwin ARCH=amd64 BIN_NAME=${APP_NAME}-darwin-amd64
   artifacts:
@@ -53,6 +58,9 @@ build:darwin:amd64:
 build:windows:amd64:
   extends: .go-build
   stage: build
+  rules:
+    # Runs only on tagged commits e.g: git tag <tag name>; git push origin tag <tag name>
+    - if: $CI_COMMIT_TAG
   script:
     - make deploy OS=windows ARCH=amd64 BIN_NAME=${APP_NAME}-windows-amd64.exe
   artifacts:
@@ -62,6 +70,9 @@ build:windows:amd64:
 build:windows:arm64:
   extends: .go-build
   stage: build
+  rules:
+    # Runs only on tagged commits e.g: git tag <tag name>; git push origin tag <tag name>
+    - if: $CI_COMMIT_TAG
   script:
     - make deploy OS=windows ARCH=arm64 BIN_NAME=${APP_NAME}-windows-arm64.exe
   artifacts:
@@ -71,6 +82,9 @@ build:windows:arm64:
 build:darwin:arm64:
   extends: .go-build
   stage: build
+  rules:
+    # Runs only on tagged commits e.g: git tag <tag name>; git push origin tag <tag name>
+    - if: $CI_COMMIT_TAG
   script:
     - make deploy OS=darwin ARCH=arm64 BIN_NAME=${APP_NAME}-darwin-arm64
   artifacts:

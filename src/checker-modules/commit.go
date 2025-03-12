@@ -1,19 +1,21 @@
-package checker_modules
+package checkermodules
 
 import (
 	"checker-pa/src/display"
 	"checker-pa/src/utils"
 	"errors"
 	"fmt"
+	"github.com/rivo/tview"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 )
 
 type CommitChecker struct {
 	ModuleOutput
 	commits []string
-	score   uint32
+	score   int
 }
 
 var ErrNotFound error = errors.New("The checker couldn't find git on your system. Are you sure it's installed?")
@@ -32,14 +34,17 @@ func (cc *CommitChecker) Reset() {
 	cc.score = 0
 }
 
-func (cc *CommitChecker) Score() uint32 {
+func (cc *CommitChecker) Score() int {
 	return cc.score
 }
 
 func (cc *CommitChecker) Display(d *display.Display) {
-	points := int32(utils.Config.CommitChecker.Score)
+	points := utils.Config.CommitChecker.Score
 
-	d.PrintPage(0, "Commit checker summary\n", "")
+	d.CurrentContainer().Title("Commit checker - "+strconv.Itoa(int(cc.score)), tview.AlignLeft)
+
+	// Disable border
+	d.PrintPage(0, "$nb", "")
 
 	if len(cc.Issues) == 0 {
 		d.Println("No issues found!")
@@ -47,9 +52,9 @@ func (cc *CommitChecker) Display(d *display.Display) {
 		return
 	}
 
-	//means we have a internal error/
+	// means we have a internal error
 	if len(cc.Issues) == 1 {
-		//means we have internal error or .git doesn't exit
+		// means we have internal error or .git doesn't exit
 		if cc.Issues[0].Critical {
 			d.Println("Got an error!")
 			d.Println(cc.Issues[0].Message)
@@ -74,7 +79,7 @@ func (cc *CommitChecker) Dump() {
 // receives the commit line without the commit hash
 func checkCommits(line string) error {
 	if !strings.Contains(line, ":") {
-		return errors.New("Invalid format! Hint, the format is: <type of commit>: <message>).")
+		return errors.New("invalid format! Hint, the format is: <type of commit>: <message>)")
 	}
 
 	typeAndMessage := strings.SplitN(line, ":", 2)
@@ -82,7 +87,7 @@ func checkCommits(line string) error {
 
 	//TODO: replace 10 later
 	if len(message) < 10 {
-		return errors.New("The message is too short!")
+		return errors.New("the message is too short")
 	}
 
 	return nil
@@ -99,7 +104,7 @@ func (cc *CommitChecker) Run() {
 			cc.Issues = append(cc.Issues, issue)
 			return
 		}
-		//if the student didn't "git init" before, this will give an ambiguous error
+		// if the student didn't "git init" before, this will give an ambiguous error
 		_, newErr := os.Stat(".git")
 		if errors.Is(newErr, os.ErrNotExist) {
 			errMsg := "Couldn't find any commits, are you sure you ran 'git init' firstly?"
@@ -122,9 +127,9 @@ func (cc *CommitChecker) Run() {
 
 	lines := strings.Split(string(output), "\n")
 
-	//sanity check, it shouldn't happen ... i hope
+	// sanity check, it shouldn't happen ... i hope
 	if len(lines) == 0 {
-		//maybe put something more ... non screaming
+		// maybe put something more ... non screaming
 		errMsg := "CRITICAL ERROR IN COMMIT CHECKER! Please make contact the team that made the checker. #1"
 		issue := ModuleIssue{Message: errMsg, Critical: true}
 		cc.Issues = append(cc.Issues, issue)
@@ -137,7 +142,7 @@ func (cc *CommitChecker) Run() {
 	for i, line := range lines {
 		splitLine := strings.SplitN(line, " ", 2)
 
-		//this shouldn't happen but ... you never know
+		// this shouldn't happen but ... you never know
 		if len(splitLine) == 0 {
 			errMsg := "CRITICAL ERROR IN COMMIT CHECKER! Please make contact the team that made the checker. #2"
 			issue := ModuleIssue{Message: errMsg, Critical: true}
@@ -160,21 +165,21 @@ func (cc *CommitChecker) Run() {
 	}
 
 	minCommits := utils.Config.CommitChecker.MinCommits
-	points := int32(utils.Config.CommitChecker.Score)
-	cc.score = uint32(points)
+	points := utils.Config.CommitChecker.Score
+	cc.score = points
 
 	if minCommits > len(cc.commits) {
 		pointsToDeduct := 1
-		cc.score -= uint32(pointsToDeduct)
+		cc.score -= pointsToDeduct
 		issueMsg := "Not enough commits have been made."
 		cc.Issues = append(cc.Issues, ModuleIssue{Message: issueMsg})
 	}
 
 	deduction := 2
 
-	if points-int32(len(cc.Issues)*deduction) <= 0 {
+	if points-len(cc.Issues)*deduction <= 0 {
 		cc.score = 0
 	} else {
-		cc.score -= uint32(len(cc.Issues) * deduction)
+		cc.score -= len(cc.Issues) * deduction
 	}
 }

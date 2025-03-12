@@ -1,8 +1,15 @@
 package utils
 
 import (
+	"encoding/json"
+	"fmt"
 	"log/slog"
 	"os"
+	"strings"
+)
+
+const (
+	UserConfigPath = "./config.json"
 )
 
 var logFile *os.File
@@ -11,12 +18,14 @@ var logger *slog.Logger
 var Config struct {
 	*ModuleConfig
 	*UserConfig
+
+	DefaultUserConfig string
 }
 
 func InitConfig(defaultUserConfigStr string, moduleConfigStr string) {
 	var err error
 
-	Config.UserConfig, err = newUserConfig(defaultUserConfigStr)
+	Config.UserConfig, err = NewUserConfig(defaultUserConfigStr)
 	if err != nil {
 		panic(err)
 	}
@@ -25,6 +34,8 @@ func InitConfig(defaultUserConfigStr string, moduleConfigStr string) {
 	if err != nil {
 		panic(err)
 	}
+
+	Config.DefaultUserConfig = defaultUserConfigStr
 
 	logFile, err = os.Create("./log.txt")
 	if err != nil {
@@ -35,6 +46,53 @@ func InitConfig(defaultUserConfigStr string, moduleConfigStr string) {
 
 }
 
+func SaveUserConfig() {
+	f, err := os.Create(UserConfigPath)
+	if err != nil {
+		panic(err)
+	}
+
+	defer f.Close()
+
+	newData, err := json.MarshalIndent(Config.UserConfig, "", "	")
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = f.WriteString(string(newData))
+	if err != nil {
+		panic(err)
+	}
+}
+
 func Log(str string) {
 	logger.Info(str)
+}
+
+var ConfigMacros = make(map[string]string)
+
+func convertMacros(srcStr string, contextMacros map[string]string) string {
+	// Replace implicit macros
+	for k, v := range ConfigMacros {
+		srcStr = strings.ReplaceAll(srcStr, fmt.Sprintf("$%s", k), v)
+	}
+
+	// Replace context macros
+	for k, v := range contextMacros {
+		srcStr = strings.ReplaceAll(srcStr, fmt.Sprintf("$%s", k), v)
+	}
+
+	return srcStr
+}
+
+// ExpandMacros No cyclic macros please!
+func ExpandMacros(str string, contextMacros map[string]string) string {
+	lastStr := ""
+
+	for lastStr != str {
+		lastStr = str
+		str = convertMacros(str, contextMacros)
+	}
+
+	return str
 }
