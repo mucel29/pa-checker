@@ -5,11 +5,12 @@ import (
 	"checker-pa/src/utils"
 	"errors"
 	"fmt"
-	"github.com/rivo/tview"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
+
+	"github.com/rivo/tview"
 )
 
 type CommitChecker struct {
@@ -24,8 +25,8 @@ func (*CommitChecker) GetName() string {
 	return "commit_checker"
 }
 
-func (*CommitChecker) WaitingFor() []string {
-	return utils.Config.CommitChecker.RunAfter
+func (*CommitChecker) IsOutputDependent() bool {
+	return utils.Config.CommitChecker.OutputDependent
 }
 
 func (cc *CommitChecker) Reset() {
