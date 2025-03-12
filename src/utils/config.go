@@ -71,7 +71,7 @@ func Log(str string) {
 
 var ConfigMacros = make(map[string]string)
 
-func ConvertMacros(srcStr string, contextMacros map[string]string) string {
+func convertMacros(srcStr string, contextMacros map[string]string) string {
 	// Replace implicit macros
 	for k, v := range ConfigMacros {
 		srcStr = strings.ReplaceAll(srcStr, fmt.Sprintf("$%s", k), v)
@@ -83,4 +83,16 @@ func ConvertMacros(srcStr string, contextMacros map[string]string) string {
 	}
 
 	return srcStr
+}
+
+// ExpandMacros No cyclic macros please!
+func ExpandMacros(str string, contextMacros map[string]string) string {
+	lastStr := ""
+
+	for lastStr != str {
+		lastStr = str
+		str = convertMacros(str, contextMacros)
+	}
+
+	return str
 }

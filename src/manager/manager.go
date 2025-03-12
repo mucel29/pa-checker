@@ -142,6 +142,11 @@ func updateMacros() {
 		}
 	}
 
+	// Load module config macros
+	for k, v := range utils.Config.Macros {
+		utils.ConfigMacros[k] = v
+	}
+
 }
 
 func (m *Manager) RetrieveConfig() {
@@ -246,7 +251,7 @@ func (m *Manager) Run() error {
 
 			// Process args
 			for _, arg := range test.Args {
-				processedArgs = append(processedArgs, utils.ConvertMacros(arg, contextMacros))
+				processedArgs = append(processedArgs, utils.ExpandMacros(arg, contextMacros))
 			}
 
 			var cmd *exec.Cmd
