@@ -72,7 +72,7 @@
       {
         "displayName": "Test 10",
         "file": "out10",
-        "args": ["task2", "$SRC_DIR/teste/dir1/dir4", "--out=$OUT"],
+        "args": ["task2", "$SRC_DIR/teste/dir1", "--out=$OUT"],
         "score": 2
       }
     ]
