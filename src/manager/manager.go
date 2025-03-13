@@ -184,6 +184,14 @@ func forwardBytes(bytes bytes.Buffer, filename string) error {
 	return nil
 }
 
+func (m *Manager) RunOutputIndenpendentModules() {
+	for _, module := range m.Modules {
+		if !module.IsOutputDependent() {
+			go module.Run()
+		}
+	}
+}
+
 func (m *Manager) Run() error {
 
 	if _, err := exec.LookPath(utils.Config.ExecutablePath); err != nil {
@@ -287,18 +295,19 @@ func (m *Manager) Run() error {
 }
 
 func (m *Manager) Check() {
+	wg := sync.WaitGroup{}
+
 	for _, module := range m.Modules {
-		if !module.IsOutputDependent() {
-			go module.Run()
+		if module.IsOutputDependent() {
+			wg.Add(1);
+			go func() {
+				defer wg.Done();
+				module.Run()
+			}
 		}
 	}
 
-	// should run the remaining modules
-	for _, module := range m.Modules {
-		if module.IsOutputDependent() {
-			module.Run()
-		}
-	}
+	wg.Wait()
 }
 
 func (m *Manager) TotalScore() int {
