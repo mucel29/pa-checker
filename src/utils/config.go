@@ -22,28 +22,29 @@ var Config struct {
 	DefaultUserConfig string
 }
 
-func InitConfig(defaultUserConfigStr string, moduleConfigStr string) {
+func InitConfig(defaultUserConfigStr string, moduleConfigStr string) error {
 	var err error
 
 	Config.UserConfig, err = NewUserConfig(defaultUserConfigStr)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	Config.ModuleConfig, err = newModuleConfig(moduleConfigStr)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	Config.DefaultUserConfig = defaultUserConfigStr
 
 	logFile, err = os.Create("./log.txt")
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	logger = slog.New(slog.NewTextHandler(logFile, nil))
 
+	return nil
 }
 
 func SaveUserConfig() {

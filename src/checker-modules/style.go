@@ -7,13 +7,14 @@ import (
 	"checker-pa/src/utils"
 	"encoding/xml"
 	"fmt"
-	"github.com/gdamore/tcell/v2"
-	"github.com/rivo/tview"
 	"math"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
+
+	"github.com/gdamore/tcell/v2"
+	"github.com/rivo/tview"
 
 	"github.com/fatih/color"
 )
@@ -27,8 +28,8 @@ func (sc *StyleChecker) GetName() string {
 	return "style_checker"
 }
 
-func (sc *StyleChecker) WaitingFor() []string {
-	return []string{} // No dependencies
+func (sc *StyleChecker) IsOutputDependent() bool {
+	return utils.Config.StyleChecker.OutputDependent
 }
 
 func (sc *StyleChecker) Display(d *display.Display) {

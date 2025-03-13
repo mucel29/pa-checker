@@ -12,29 +12,29 @@ type Test struct {
 }
 
 type RefChecker struct {
-	RunAfter  []string `json:"run_after"`
-	InputPath string   `json:"input_after"`
-	Tests     []Test   `json:"tests"`
+	OutputDependent bool   `json:"output_dependent"`
+	InputPath       string `json:"input_after"`
+	Tests           []Test `json:"tests"`
 }
 
 type CommitChecker struct {
-	RunAfter   []string `json:"run_after"`
-	MinCommits int      `json:"minCommits"`
-	UseFormat  bool     `json:"useFormat"`
-	Score      int      `json:"score"`
+	OutputDependent bool `json:"output_dependent"`
+	MinCommits      int  `json:"minCommits"`
+	UseFormat       bool `json:"useFormat"`
+	Score           int  `json:"score"`
 }
 
 type MemoryChecker struct {
-	RunAfter   []string `json:"run_after"`
-	MaxWarning int      `json:"maxWarning"`
-	MaxLeak    int      `json:"maxLeak"`
-	Score      int      `json:"score"`
+	OutputDependent bool `json:"output_dependent"`
+	MaxWarning      int  `json:"maxWarning"`
+	MaxLeak         int  `json:"maxLeak"`
+	Score           int  `json:"score"`
 }
 
 type StyleChecker struct {
-	RunAfter       []string `json:"run_after"`
-	ScoreThreshold int      `json:"score_threshold"`
-	Thresholds     []struct {
+	OutputDependent bool `json:"output_dependent"`
+	ScoreThreshold  int  `json:"score_threshold"`
+	Thresholds      []struct {
 		Under int `json:"under"`
 		Score int `json:"score"`
 	} `json:"thresholds"`

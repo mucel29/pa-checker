@@ -2,7 +2,7 @@ package manager
 
 import (
 	"bytes"
-	"checker-pa/src/checker-modules"
+	checkermodules "checker-pa/src/checker-modules"
 	"checker-pa/src/utils"
 	"errors"
 	"fmt"
@@ -13,22 +13,13 @@ import (
 	"time"
 )
 
-// SystemCapabilities TODO: make it a map in the future
-type SystemCapabilities int
-
-const (
-	valgrind SystemCapabilities = iota
-	cppcheck
-	end
-)
-
 type Manager struct {
 	Modules []checkermodules.CheckerModule
 
-	capabilities []bool
+	capabilities map[string]bool
 }
 
-func (m *Manager) checkCapabilities() {
+func (m *Manager) checkCapabilities() error {
 
 	// Check for Valgrind
 
@@ -36,33 +27,43 @@ func (m *Manager) checkCapabilities() {
 
 	if _, err := exec.LookPath("valgrind"); err != nil {
 		utils.Log("[ERR] valgrind")
-	} else {
-		utils.Log("[OK] valgrind")
-		m.capabilities[valgrind] = true
+		return errors.New("couldn't find valgrind on your system")
 	}
+
+	utils.Log("[OK] valgrind")
+	m.capabilities["valgrind"] = true
 
 	// Check for cppcheck
 	if _, err := exec.LookPath("cppcheck"); err != nil {
 		utils.Log("[ERR] cppcheck")
-	} else {
-		utils.Log("[OK] cppcheck")
-		m.capabilities[cppcheck] = true
+		return errors.New("couldn't find cppcheck on your system")
 	}
 
+	utils.Log("[OK] cppcheck")
+	m.capabilities["cppcheck"] = true
+
+	return nil
 }
 
 func NewManager() (*Manager, error) {
 	var m Manager
 
-	m.capabilities = make([]bool, end)
+	m.capabilities = make(map[string]bool)
 
-	m.checkCapabilities()
-	err := m.registerModules()
+	err := m.checkCapabilities()
 	if err != nil {
 		return nil, err
 	}
 
-	m.RetrieveConfig()
+	err = m.registerModules()
+	if err != nil {
+		return nil, err
+	}
+
+	err = m.RetrieveConfig()
+	if err != nil {
+		return nil, err
+	}
 
 	return &m, nil
 }
@@ -95,31 +96,6 @@ func (m *Manager) registerModules() error {
 	return nil
 }
 
-func checkDependencies(module checkermodules.CheckerModule, finished map[string]bool) bool {
-	if len(module.WaitingFor()) == 0 {
-		return true
-	}
-
-	for _, dependency := range module.WaitingFor() {
-		if !finished[dependency] {
-			return false
-		}
-	}
-
-	return true
-}
-
-func runDeferred(deferred []checkermodules.CheckerModule, finished map[string]bool) {
-	for i, deferredModule := range deferred {
-		if checkDependencies(deferredModule, finished) {
-			deferred = append(deferred[:i], deferred[i+1:]...)
-			utils.Log("Running " + deferredModule.GetName() + " module")
-			deferredModule.Run()
-			finished[deferredModule.GetName()] = true
-		}
-	}
-}
-
 func updateMacros() {
 	// Output path
 	outPath, err := filepath.Abs(utils.Config.OutputPath)
@@ -149,35 +125,35 @@ func updateMacros() {
 
 }
 
-func (m *Manager) RetrieveConfig() {
+func (m *Manager) RetrieveConfig() error {
 	defer updateMacros()
 
 	if _, err := os.Stat(utils.UserConfigPath); err == nil {
 		// Read the config from there
 		data, err := os.ReadFile(utils.UserConfigPath)
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 		// Bug: if fields are not present, they get changed to ""
 		utils.Config.UserConfig, err = utils.NewUserConfig(string(data))
 		if err != nil {
-			panic(err)
+			return err
 		}
 	} else {
 		f, err := os.Create(utils.UserConfigPath)
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 		defer f.Close()
 
 		_, err = f.WriteString(utils.Config.DefaultUserConfig)
 		if err != nil {
-			panic(err)
+			return err
 		}
-
 	}
+	return nil
 }
 
 func forwardBytes(bytes bytes.Buffer, filename string) error {
@@ -235,6 +211,17 @@ func (m *Manager) Run() error {
 
 	wg := sync.WaitGroup{}
 
+	for _, module := range m.Modules {
+		if !module.IsOutputDependent() {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				defer utils.Log(module.GetName() + " done!")
+				module.Run()
+			}()
+		}
+	}
+
 	for _, test := range utils.Config.Tests {
 		wg.Add(1)
 		go func() {
@@ -256,7 +243,7 @@ func (m *Manager) Run() error {
 
 			var cmd *exec.Cmd
 
-			if m.capabilities[valgrind] && utils.Config.RunValgrind {
+			if m.capabilities["valgrind"] && utils.Config.RunValgrind {
 
 				xmlPath := filepath.Join(tempPath, fmt.Sprintf("%s.xml", test.File))
 
@@ -309,45 +296,20 @@ func (m *Manager) Run() error {
 }
 
 func (m *Manager) Check() {
-	var finished = make(map[string]bool)
-	var deferred []checkermodules.CheckerModule
+	wg := sync.WaitGroup{}
 
 	for _, module := range m.Modules {
-		// If the current module doesn't need to wait for another, just run it
-		if checkDependencies(module, finished) {
-			utils.Log("Running " + module.GetName() + " module")
-			module.Run()
-			finished[module.GetName()] = true
-		} else {
-			deferred = append(deferred, module)
+		if module.IsOutputDependent() {
+			wg.Add(1)
+			utils.Log("RUNNING " + module.GetName())
+			go func() {
+				defer wg.Done()
+				module.Run()
+			}()
 		}
-
-		// Search for deferred Modules to run
-		runDeferred(deferred, finished)
 	}
 
-	if len(deferred) == 0 {
-		return
-	}
-
-	// Check for remaining deferred (lazy cycle check)
-	var maxIterations = len(deferred)
-	cycle := true
-
-	for i := 0; i < maxIterations; i++ {
-		if len(deferred) == 0 {
-			cycle = false
-			break
-		}
-		// Search for deferred Modules to run
-		runDeferred(deferred, finished)
-	}
-
-	if cycle {
-		utils.Log("Module dependency cycle detected")
-		panic(fmt.Errorf("module dependency cycle detected"))
-	}
-
+	wg.Wait()
 }
 
 func (m *Manager) TotalScore() int {
