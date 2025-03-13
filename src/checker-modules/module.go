@@ -26,7 +26,7 @@ type ModuleOutput struct {
 
 type CheckerModule interface {
 	GetName() string
-	WaitingFor() []string
+	IsOutputDependent() bool
 	Run()
 	Display(d *display.Display)
 	Dump()

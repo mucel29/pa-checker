@@ -7,6 +7,7 @@ import (
 	"checker-pa/src/utils"
 	_ "embed"
 	"flag"
+	"log"
 )
 
 //go:embed res/module_config.json
@@ -15,28 +16,36 @@ var moduleConfigStr string
 //go:embed res/user_config.json
 var defaultUserConfigStr string
 
-func main() {
+var useInteractive bool
 
-	utils.InitConfig(defaultUserConfigStr, moduleConfigStr)
-	useInteractive := flag.Bool("i", false, "Interactive mode")
+func init() {
+	flag.BoolVar(&useInteractive, "i", false, "Interactive mode")
+}
+
+func main() {
+	flag.Parse()
+
+	err := utils.InitConfig(defaultUserConfigStr, moduleConfigStr)
+	if err != nil {
+		log.Fatalln("FATAL ERROR DETECTED! " + err.Error() + "\n ABORTING!")
+	}
 
 	// TODO: check for user config
-
 	m, err := manager.NewManager()
 
 	if err != nil {
-		panic(err)
+		log.Fatalln("FATAL ERROR DETECTED! " + err.Error() + "\n ABORTING!")
 	}
-
-	flag.Parse()
 
 	err = m.Run()
 	if err != nil {
-		panic(err)
+		log.Fatalln("FATAL ERROR DETECTED! " + err.Error() + "\n ABORTING!")
 	}
+
+	// TODO?: make this return an error as well?
 	m.Check()
 
-	if *useInteractive {
+	if useInteractive {
 
 		utils.Log("Interactive Display")
 		d := display.NewDisplay()

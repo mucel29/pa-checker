@@ -4,12 +4,13 @@ import (
 	"checker-pa/src/display"
 	"checker-pa/src/utils"
 	"fmt"
-	"github.com/gdamore/tcell/v2"
-	"github.com/rivo/tview"
 	"os"
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/gdamore/tcell/v2"
+	"github.com/rivo/tview"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
@@ -52,8 +53,8 @@ func (dm *DiffModule) GetName() string {
 	return dm.uniqueName
 }
 
-func (dm *DiffModule) WaitingFor() []string {
-	return []string{}
+func (dm *DiffModule) IsOutputDependent() bool {
+	return utils.Config.RefChecker.OutputDependent
 }
 
 func (dm *DiffModule) Run() {
@@ -110,7 +111,7 @@ func (dm *DiffModule) Display(d *display.Display) {
 	currentCol := 0
 
 	for _, result := range dm.results {
-		utils.Log(result.filename)
+		// utils.Log(result.filename)
 		if currentRow >= MaxRow && currentCol < MaxCol {
 			currentRow = 0
 			currentCol++

@@ -5,13 +5,14 @@ import (
 	"checker-pa/src/utils"
 	"encoding/xml"
 	"fmt"
-	"github.com/gdamore/tcell/v2"
-	"github.com/rivo/tview"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/gdamore/tcell/v2"
+	"github.com/rivo/tview"
 )
 
 const (
@@ -147,8 +148,8 @@ func (*MemoryChecker) GetName() string {
 	return "memory_checker"
 }
 
-func (*MemoryChecker) WaitingFor() []string {
-	return utils.Config.MemoryChecker.RunAfter
+func (*MemoryChecker) IsOutputDependent() bool {
+	return utils.Config.MemoryChecker.OutputDependent
 }
 
 func (mc *MemoryChecker) Reset() {
