@@ -32,7 +32,6 @@ func (m *Manager) checkCapabilities() error {
 
 	utils.Log("[OK] valgrind")
 	m.capabilities["valgrind"] = true
-	
 
 	// Check for cppcheck
 	if _, err := exec.LookPath("cppcheck"); err != nil {
@@ -42,7 +41,6 @@ func (m *Manager) checkCapabilities() error {
 
 	utils.Log("[OK] cppcheck")
 	m.capabilities["cppcheck"] = true
-	
 
 	return nil
 }
@@ -184,14 +182,6 @@ func forwardBytes(bytes bytes.Buffer, filename string) error {
 	return nil
 }
 
-func (m *Manager) RunOutputIndenpendentModules() {
-	for _, module := range m.Modules {
-		if !module.IsOutputDependent() {
-			go module.Run()
-		}
-	}
-}
-
 func (m *Manager) Run() error {
 
 	if _, err := exec.LookPath(utils.Config.ExecutablePath); err != nil {
@@ -220,6 +210,17 @@ func (m *Manager) Run() error {
 	}
 
 	wg := sync.WaitGroup{}
+
+	for _, module := range m.Modules {
+		if !module.IsOutputDependent() {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				defer utils.Log(module.GetName() + " done!")
+				module.Run()
+			}()
+		}
+	}
 
 	for _, test := range utils.Config.Tests {
 		wg.Add(1)
@@ -299,11 +300,12 @@ func (m *Manager) Check() {
 
 	for _, module := range m.Modules {
 		if module.IsOutputDependent() {
-			wg.Add(1);
+			wg.Add(1)
+			utils.Log("RUNNING " + module.GetName())
 			go func() {
-				defer wg.Done();
+				defer wg.Done()
 				module.Run()
-			}
+			}()
 		}
 	}
 

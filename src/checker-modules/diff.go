@@ -111,7 +111,7 @@ func (dm *DiffModule) Display(d *display.Display) {
 	currentCol := 0
 
 	for _, result := range dm.results {
-		utils.Log(result.filename)
+		// utils.Log(result.filename)
 		if currentRow >= MaxRow && currentCol < MaxCol {
 			currentRow = 0
 			currentCol++

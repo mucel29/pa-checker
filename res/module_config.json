@@ -12,7 +12,7 @@
   },
 
   "ref_checker": {
-    "output_dependent": false,
+    "output_dependent": true,
     "input_path": "./path/to/exec", // might convert to enums?
     "tests": [
       {
