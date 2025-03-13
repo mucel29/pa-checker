@@ -33,9 +33,14 @@ func (dummy *DummyModule) GetName() string {
 	return dummy.uniqueName
 }
 
-func (dummy *DummyModule) WaitingFor() []string {
-	return []string{}
-}
+func (dummy *DummyModule) IsOutputDependent() bool { return false }
+
+func (dummy *DummyModule) GetDependencies() []string { return nil }
+
+func (dummy *DummyModule) Disable(_ bool) {}
+func (dummy *DummyModule) Enable()        {}
+
+func (dummy *DummyModule) GetStatus() ModuleStatus { return Ready }
 
 func (dummy *DummyModule) Run() {
 	const issueCount = 25

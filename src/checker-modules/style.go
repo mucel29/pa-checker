@@ -10,6 +10,7 @@ import (
 	"math"
 	"os"
 	"os/exec"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -22,19 +23,63 @@ import (
 type StyleChecker struct {
 	ModuleOutput
 	totalScore int
+	status     ModuleStatus
 }
 
 func (sc *StyleChecker) GetName() string {
-	return "style_checker"
+	return "STYLE"
 }
 
 func (sc *StyleChecker) IsOutputDependent() bool {
 	return utils.Config.StyleChecker.OutputDependent
 }
 
+func (sc *StyleChecker) GetDependencies() []string { return utils.Config.StyleChecker.Dependencies }
+
+func (sc *StyleChecker) Disable(fail bool) {
+	if fail {
+		sc.status = DependencyFail
+	} else {
+		sc.status = Disabled
+	}
+}
+
+func (sc *StyleChecker) Enable() {
+	sc.status = Ready
+}
+
+func (sc *StyleChecker) GetStatus() ModuleStatus {
+	return sc.status
+}
+
+func (sc *StyleChecker) GetResult() string {
+	return fmt.Sprintf("%d issues", len(sc.Issues))
+}
+
 func (sc *StyleChecker) Display(d *display.Display) {
+
+	switch sc.status {
+	case Disabled:
+		d.Println("This module is disabled.")
+		return
+	case DependencyFail:
+		d.Println("One or more dependencies have failed.\nCheck if you have the following installed:")
+		for _, dependency := range sc.GetDependencies() {
+			d.Println(dependency)
+		}
+		return
+	case FakeRunning:
+		fallthrough
+	case Running:
+		d.Println("This module is currently running. Please wait")
+		return
+	default:
+	}
+
 	// Display module summary
 	d.CurrentContainer().Title("Style checker - "+strconv.Itoa(int(sc.totalScore)), tview.AlignLeft)
+
+	// TODO: also sort issues by line number and col after grouping
 
 	groups := sc.ModuleError.groupIssues(func(issue *ModuleIssue) string {
 		return issue.File
@@ -52,7 +97,15 @@ func (sc *StyleChecker) Display(d *display.Display) {
 	currentRow := 0
 	currentCol := 0
 
-	for file := range groups {
+	var keys []string
+
+	for k := range groups {
+		keys = append(keys, k)
+	}
+
+	sort.Strings(keys)
+
+	for _, file := range keys {
 		if currentRow >= MaxRow && currentCol < MaxCol {
 			currentRow = 0
 			currentCol++
@@ -100,13 +153,23 @@ func (sc *StyleChecker) Display(d *display.Display) {
 
 func (sc *StyleChecker) Dump() {
 	fmt.Printf("===== Style Checker - %d =====\n\n", sc.totalScore)
+
+	if sc.status != Ready {
+		fmt.Println("The commit module is disabled.")
+		return
+	}
+
 	fmt.Println(sc.ModuleError.String())
 	fmt.Println()
 }
 
 func (sc *StyleChecker) Reset() {
+	if sc.status == Disabled || sc.status == DependencyFail {
+		return
+	}
 	sc.Issues = nil
 	sc.totalScore = 0
+	sc.status = FakeRunning
 }
 
 func (sc *StyleChecker) Score() int {
@@ -118,17 +181,22 @@ func (sc *StyleChecker) Score() int {
 }
 
 func (sc *StyleChecker) Run() {
+	sc.status = Running
+	defer func() { sc.status = Ready }()
+
 	// Check if cppcheck is installed
-	if _, err := exec.LookPath("cppcheck"); err != nil {
-		sc.Issues = append(sc.Issues, ModuleIssue{
-			Message:     "cppcheck is not installed",
-			Line:        0,
-			Col:         0,
-			ShowLineCol: false,
-		})
-		sc.totalScore = -1 // Module failure
-		return
-	}
+	/*
+		if _, err := exec.LookPath("cppcheck"); err != nil {
+			sc.Issues = append(sc.Issues, ModuleIssue{
+				Message:     "cppcheck is not installed",
+				Line:        0,
+				Col:         0,
+				ShowLineCol: false,
+			})
+			sc.totalScore = -1 // Module failure
+			return
+		}
+	*/
 
 	config := utils.Config.UserConfig
 

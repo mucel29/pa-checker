@@ -140,21 +140,48 @@ func (tmr *TestMemoryResult) String() string {
 }
 
 type MemoryChecker struct {
-	score int
-	tests []TestMemoryResult
+	score  int
+	tests  []TestMemoryResult
+	status ModuleStatus
 }
 
 func (*MemoryChecker) GetName() string {
-	return "memory_checker"
+	return "MEMORY"
 }
 
 func (*MemoryChecker) IsOutputDependent() bool {
 	return utils.Config.MemoryChecker.OutputDependent
 }
 
+func (*MemoryChecker) GetDependencies() []string { return utils.Config.MemoryChecker.Dependencies }
+
+func (mc *MemoryChecker) Disable(fail bool) {
+	if fail {
+		mc.status = DependencyFail
+	} else {
+		mc.status = Disabled
+	}
+}
+
+func (mc *MemoryChecker) Enable() {
+	mc.status = Ready
+}
+
+func (mc *MemoryChecker) GetStatus() ModuleStatus {
+	return mc.status
+}
+
+func (mc *MemoryChecker) GetResult() string {
+	return fmt.Sprintf("%d leaks", mc.getTotalIssues())
+}
+
 func (mc *MemoryChecker) Reset() {
+	if mc.status == Disabled || mc.status == DependencyFail {
+		return
+	}
 	mc.tests = nil
 	mc.score = 0
+	mc.status = FakeRunning
 }
 
 func (mc *MemoryChecker) Score() int {
@@ -185,6 +212,30 @@ func (mc *MemoryChecker) getStatus() TestStatus {
 
 func (mc *MemoryChecker) Display(d *display.Display) {
 	d.CurrentContainer().Title("Memory checker - "+strconv.Itoa(int(mc.score)), tview.AlignLeft)
+
+	switch mc.status {
+	case Disabled:
+		// Disable border
+		d.PrintPage(0, "$nb", "")
+		d.Println("This module is disabled.")
+		return
+	case DependencyFail:
+		// Disable border
+		d.PrintPage(0, "$nb", "")
+		d.Println("One or more dependencies have failed.\nCheck if you have the following installed:")
+		for _, dependency := range mc.GetDependencies() {
+			d.Println(dependency)
+		}
+		return
+	case FakeRunning:
+		fallthrough
+	case Running:
+		// Disable border
+		d.PrintPage(0, "$nb", "")
+		d.Println("This module is currently running. Please wait")
+		return
+	default:
+	}
 
 	if mc.getStatus() == OK {
 		// Disable border
@@ -267,6 +318,11 @@ func (mc *MemoryChecker) Display(d *display.Display) {
 func (mc *MemoryChecker) Dump() {
 	fmt.Printf("===== %s - %d =====\n\n", "Memory checker", mc.score)
 
+	if mc.status != Ready {
+		fmt.Println("This module is disabled.")
+		return
+	}
+
 	if mc.getStatus() == OK {
 		fmt.Println("No issues found! Great job :)!")
 	}
@@ -284,6 +340,9 @@ func (mc *MemoryChecker) Dump() {
 }
 
 func (mc *MemoryChecker) Run() {
+	mc.status = Running
+	defer func() { mc.status = Ready }()
+
 	mc.score = utils.Config.MemoryChecker.Score
 
 	// Preallocate to keep order and avoid conflicts in the goroutines

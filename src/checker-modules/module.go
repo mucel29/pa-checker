@@ -24,14 +24,46 @@ type ModuleOutput struct {
 	ModuleError
 }
 
+type ModuleStatus int
+
+const (
+	Ready ModuleStatus = iota
+	Running
+	FakeRunning
+	Disabled
+	DependencyFail
+)
+
+func (ms ModuleStatus) String() string {
+	switch ms {
+	case Ready:
+		return "[green]Ready[-]"
+	case FakeRunning:
+		fallthrough
+	case Running:
+		return "[yellow]Running[-]"
+	case Disabled:
+		return "[gray]Disabled[-]"
+	case DependencyFail:
+		return "[red]ERR[-]"
+	default:
+		return "UNKNOWN"
+	}
+}
+
 type CheckerModule interface {
 	GetName() string
 	IsOutputDependent() bool
+	GetDependencies() []string
 	Run()
 	Display(d *display.Display)
 	Dump()
 	Reset()
 	Score() int
+	GetResult() string
+	Disable(fail bool)
+	Enable()
+	GetStatus() ModuleStatus
 }
 
 func (err *ModuleError) String() string {

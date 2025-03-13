@@ -1,12 +1,15 @@
 package menu
 
 import (
-	checker_modules "checker-pa/src/checker-modules"
+	"checker-pa/src/checker-modules"
 	"checker-pa/src/display"
 	"checker-pa/src/manager"
 	"checker-pa/src/utils"
+	"fmt"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	"strconv"
+	"strings"
 )
 
 type Menu struct {
@@ -14,6 +17,8 @@ type Menu struct {
 	*manager.Manager
 	nav      *tview.List
 	launched bool
+
+	redraw func()
 }
 
 const (
@@ -72,6 +77,10 @@ func (m *Menu) displayOptions() {
 	fPath.SetText(utils.Config.ForwardPath)
 	fPath.SetFieldWidth(fieldWidth)
 
+	rValgrind := tview.NewCheckbox()
+	rValgrind.SetLabel("Valgrind")
+	rValgrind.SetChecked(utils.Config.RunValgrind)
+
 	form := tview.NewFlex()
 	form.SetDirection(tview.FlexRow)
 
@@ -81,9 +90,25 @@ func (m *Menu) displayOptions() {
 	form.AddItem(oPath, 0, 1, false)
 	form.AddItem(rPath, 0, 1, false)
 	form.AddItem(fPath, 0, 1, false)
+	form.AddItem(rValgrind, 0, 1, false)
 
 	items := []*tview.InputField{
 		exPath, iPath, sPath, oPath, rPath, fPath,
+	}
+
+	formItems := []tview.FormItem{
+		exPath, iPath, sPath, oPath, rPath, fPath, rValgrind,
+	}
+
+	m.redraw = func() {
+		// Avoid saving of config when checker starts because of exec change
+		for _, item := range items {
+			item.SetText("")
+		}
+		rValgrind.SetChecked(utils.Config.RunValgrind)
+		m.redraw = nil
+		// m.displayHome()
+
 	}
 
 	itemIndex := 0
@@ -94,11 +119,19 @@ func (m *Menu) displayOptions() {
 		// Update selected item on click
 		item.SetFocusFunc(func() {
 			firstLaunch = false
-			items[itemIndex].SetFormAttributes(labelWidth, labelColor, labelBgColor, fieldColor, fieldBgColor)
+			formItems[itemIndex].SetFormAttributes(labelWidth, labelColor, labelBgColor, fieldColor, fieldBgColor)
 			itemIndex = i
 			item.SetFormAttributes(labelWidth, labelColor, labelBgColor, fieldSelColor, fieldSelBgColor)
 		})
 	}
+
+	rValgrind.SetFormAttributes(labelWidth, labelColor, labelBgColor, fieldColor, fieldBgColor)
+	rValgrind.SetFocusFunc(func() {
+		firstLaunch = false
+		formItems[itemIndex].SetFormAttributes(labelWidth, labelColor, labelBgColor, fieldColor, fieldBgColor)
+		itemIndex = len(items)
+		rValgrind.SetFormAttributes(labelWidth, labelColor, labelBgColor, fieldSelColor, fieldSelBgColor)
+	})
 
 	// Stop the input fields from changing cursor the end / beginning
 	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
@@ -112,7 +145,7 @@ func (m *Menu) displayOptions() {
 	m.CurrentContainer().AddInputCallback(func(event *tcell.EventKey) {
 
 		if event.Key() == tcell.KeyUp || event.Key() == tcell.KeyDown {
-			oldItem := items[itemIndex]
+			oldItem := formItems[itemIndex]
 			oldItem.SetFormAttributes(labelWidth, labelColor, labelBgColor, fieldColor, fieldBgColor)
 		}
 
@@ -130,12 +163,12 @@ func (m *Menu) displayOptions() {
 		}
 
 		if itemIndex < 0 {
-			itemIndex = len(items) - 1
-		} else if itemIndex >= len(items) {
+			itemIndex = len(formItems) - 1
+		} else if itemIndex >= len(formItems) {
 			itemIndex = 0
 		}
 
-		currItem := items[itemIndex]
+		currItem := formItems[itemIndex]
 		m.App.SetFocus(currItem)
 		currItem.SetFormAttributes(labelWidth, labelColor, labelBgColor, fieldSelColor, fieldSelBgColor)
 
@@ -152,6 +185,7 @@ func (m *Menu) displayOptions() {
 		utils.Config.OutputPath = orString(oPath.GetText(), utils.Config.OutputPath)
 		utils.Config.RefPath = orString(rPath.GetText(), utils.Config.RefPath)
 		utils.Config.ForwardPath = orString(fPath.GetText(), utils.Config.ForwardPath)
+		utils.Config.RunValgrind = rValgrind.IsChecked()
 
 		// TODO: trigger manager
 
@@ -165,32 +199,114 @@ func (m *Menu) displayOptions() {
 
 func (m *Menu) displayRef() {
 	m.CurrentContainer().Clear()
-	checker_modules.AvailableModules["ref_checker"].Display(m.Display)
+
+	m.redraw = func() {
+		// Pop the pages until the nav page
+		for m.IsStacked() {
+			m.PreviousPage()
+		}
+		m.displayRef()
+	}
+
+	checkermodules.AvailableModules["ref_checker"].Display(m.Display)
 }
 
 func (m *Menu) displayStyle() {
 	m.CurrentContainer().Clear()
-	checker_modules.AvailableModules["style_checker"].Display(m.Display)
+	m.redraw = func() {
+		m.displayStyle()
+	}
+	checkermodules.AvailableModules["style_checker"].Display(m.Display)
 }
 
 func (m *Menu) displayMemory() {
 	m.CurrentContainer().Clear()
-	checker_modules.AvailableModules["memory_checker"].Display(m.Display)
+
+	m.redraw = func() {
+		// Pop the pages until the nav page
+		for m.IsStacked() {
+			m.PreviousPage()
+		}
+		m.displayMemory()
+	}
+	checkermodules.AvailableModules["memory_checker"].Display(m.Display)
 }
 
 func (m *Menu) displayCommits() {
 	m.CurrentContainer().Clear()
-	checker_modules.AvailableModules["commit_checker"].Display(m.Display)
+	m.redraw = func() {
+		m.displayCommits()
+	}
+	checkermodules.AvailableModules["commit_checker"].Display(m.Display)
 	m.CurrentContainer().WrapInput(m.CurrentContainer().Sections[0])
 }
 
+/*
 func (m *Menu) displayHome() {
+	// Set focus back to nav
+	m.App.SetFocus(m.nav)
+	m.nav.SetCurrentItem(0)
+
 	m.CurrentContainer().Clear()
 	m.CurrentContainer().Title("Home", tview.AlignLeft)
 	m.CurrentContainer().SetDirection(tview.FlexRow)
 	// TODO: set this to info about the modules, redraw the page when the manager triggers
-	m.CurrentContainer().PrintIndex(0, "Summary", "Placeholder for module summary")
+	//m.CurrentContainer().PrintIndex(0, "Summary", "Placeholder for module summary")
+
+	//m.StatusPing = func(caption string) {
+	//	if len(m.CurrentContainer().Sections) > 0 {
+	//		m.CurrentContainer().Sections[0].Clear()
+	//	}
+	//	summary := strings.Builder{}
+	//	if caption != "" {
+	//		summary.WriteString(caption)
+	//	}
+	//
+	//	summary.WriteString("\n\n\n")
+	//
+	//	for _, module := range m.Modules {
+	//		summary.WriteString(fmt.Sprintf("%-30s - %10s\n", module.GetName(), module.GetStatus().String()))
+	//	}
+	//
+	//	m.CurrentContainer().PrintIndex(0, "Summary", summary.String())
+	//
+	//	m.App.ForceDraw()
+	//}
+	//
+	//m.StatusPing("")
+
 	m.CurrentContainer().PrintIndex(1, "Tutorial", "TUTORIAL\nTUTORIAL\nTUTORIAL\nTUTORIAL\nTUTORIAL\nTUTORIAL\n")
+}
+*/
+
+func (m *Menu) displayTutorial() {
+	modal := tview.NewModal()
+	modal.SetTitle("TUTORIAL")
+	modal.SetText("TUTORIAL\nTUTORIAL\nTUTORIAL\nTUTORIAL\n")
+	modal.AddButtons([]string{"OK"})
+	modal.SetDoneFunc(func(_ int, _ string) {
+		utils.Config.Tutorial = false
+		utils.SaveUserConfig()
+		m.App.SetRoot(m.Root, true)
+		m.displayRef()
+	})
+
+	m.App.SetRoot(modal, true)
+}
+
+func colorScore(score int) string {
+	color := "[red]"
+	if score < 35 { //nolint:gocritic
+		color = "[red]"
+	} else if score < 60 {
+		color = "[yellow]"
+	} else if score < 90 {
+		color = "[green]"
+	} else {
+		color = "[aqua]"
+	}
+
+	return color + strconv.Itoa(score)
 }
 
 func (m *Menu) createMainMenu() {
@@ -202,10 +318,6 @@ func (m *Menu) createMainMenu() {
 
 	infoContainer := m.CurrentContainer().Container
 	mainContainer.AddItem(infoContainer, 0, 3, false)
-
-	m.displayHome()
-
-	// TODO: fix bug where clicking the nav buttons they switch to the wrong tab
 
 	m.nav = tview.NewList()
 	m.nav.SetBorderPadding(1, 1, 1, 1)
@@ -241,23 +353,25 @@ func (m *Menu) createMainMenu() {
 		}
 	})
 
-	m.nav.AddItem("home", "", 0, func() {
-		m.displayHome()
-	})
+	/*
+		m.nav.AddItem("home", "", 0, func() {
+			m.displayHome()
+		})
+	*/
 
-	m.nav.AddItem("ref", "", 0, func() {
+	m.nav.AddItem("Refs", "", 0, func() {
 		m.displayRef()
 	})
-	m.nav.AddItem("style", "", 0, func() {
+	m.nav.AddItem("Style", "", 0, func() {
 		m.displayStyle()
 	})
-	m.nav.AddItem("memory", "", 0, func() {
+	m.nav.AddItem("Memory", "", 0, func() {
 		m.displayMemory()
 	})
-	m.nav.AddItem("commit", "", 0, func() {
+	m.nav.AddItem("Commit", "", 0, func() {
 		m.displayCommits()
 	})
-	m.nav.AddItem("options", "", 0, func() {
+	m.nav.AddItem("Options", "", 0, func() {
 		m.displayOptions()
 	})
 
@@ -265,20 +379,61 @@ func (m *Menu) createMainMenu() {
 
 	buttonContainer.AddItem(m.nav, 0, 4, true)
 
-	scoreContainer := tview.NewTextView().SetText("80 / 100")
-	scoreContainer.SetTitle("Score").
-		SetTitleAlign(tview.AlignLeft).
-		SetBorder(true)
+	/*
+		scoreContainer := tview.NewTextView().SetText("80 / 100")
+		scoreContainer.SetTitle("Score").
+			SetTitleAlign(tview.AlignLeft).
+			SetBorder(true)
 
-	buttonContainer.AddItem(scoreContainer, 0, 1, true)
+		buttonContainer.AddItem(scoreContainer, 0, 1, true)
+	*/
 
-	infoBox := tview.NewTextView().SetText("mucel Ciprian\nsteffe Horicuz").SetTextAlign(tview.AlignCenter)
-	infoBox.SetTitle("Credits").
+	infoBox := tview.NewTextView().
+		SetDynamicColors(true) // .SetText("mucel Ciprian\nsteffe Horicuz").SetTextAlign(tview.AlignCenter)
+	infoBox.SetTitle("Score - " + colorScore(0)).
 		SetTitleAlign(tview.AlignLeft).
 		SetBorder(true)
 	infoBox.SetBorder(true)
+	infoBox.SetChangedFunc(func() {
+		m.App.ForceDraw()
+	})
 
-	buttonContainer.AddItem(infoBox, 0, 1, false)
+	buttonContainer.AddItem(infoBox, 0, 3, false)
+
+	m.StatusPing = func(caption string) {
+		infoBox.SetTitle("Score - " + colorScore(m.TotalScore()))
+		infoBox.Clear()
+		summary := strings.Builder{}
+		if caption != "" {
+			summary.WriteString(caption)
+		}
+
+		summary.WriteString("\n\n\n")
+
+		for _, module := range m.Modules {
+			if module.GetStatus() != checkermodules.Ready {
+				summary.WriteString(fmt.Sprintf("%-7s - %-8s\n", module.GetName(), module.GetStatus().String()))
+			} else {
+				summary.WriteString(fmt.Sprintf("%-7s - %-8s\n", module.GetName(), module.GetResult()))
+			}
+		}
+
+		fmt.Fprintf(tview.ANSIWriter(infoBox), "%s", summary.String())
+
+		if m.redraw != nil {
+			m.redraw()
+		}
+
+	}
+
+	m.StatusPing("")
+
+	// m.displayHome()
+	if utils.Config.Tutorial {
+		m.displayTutorial()
+	} else {
+		m.displayRef()
+	}
 
 	m.AddElement(&display.PageElement{Element: mainContainer, Proportion: 1, Focused: false})
 	m.App.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
@@ -294,6 +449,15 @@ func (m *Menu) createMainMenu() {
 				m.App.SetFocus(m.CurrentContainer().Container)
 			} else if m.CurrentPageIndex() == 0 {
 				m.App.SetFocus(m.nav)
+			}
+
+			return nil
+		}
+
+		if event.Rune() == '`' {
+			err := m.Run()
+			if err != nil {
+				utils.Log(err.Error())
 			}
 
 			return nil

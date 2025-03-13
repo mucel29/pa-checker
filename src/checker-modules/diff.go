@@ -40,12 +40,13 @@ type DiffModule struct {
 	results    []FileCompareResult
 	matchCount int
 	totalFiles int
+	status     ModuleStatus
 }
 
 func NewDiffModule() *DiffModule {
 	return &DiffModule{
 		totalScore: 0,
-		uniqueName: "diff_checker",
+		uniqueName: "REFS",
 	}
 }
 
@@ -53,11 +54,36 @@ func (dm *DiffModule) GetName() string {
 	return dm.uniqueName
 }
 
-func (dm *DiffModule) IsOutputDependent() bool {
+func (*DiffModule) IsOutputDependent() bool {
 	return utils.Config.RefChecker.OutputDependent
 }
 
+func (*DiffModule) GetDependencies() []string { return nil }
+
+func (dm *DiffModule) Disable(fail bool) {
+	if fail {
+		dm.status = DependencyFail
+	} else {
+		dm.status = Disabled
+	}
+}
+
+func (dm *DiffModule) Enable() {
+	dm.status = Ready
+}
+
+func (dm *DiffModule) GetStatus() ModuleStatus {
+	return dm.status
+}
+
+func (dm *DiffModule) GetResult() string {
+	return fmt.Sprintf("%d / %d", dm.matchCount, dm.totalFiles)
+}
+
 func (dm *DiffModule) Run() {
+	dm.status = Running
+	defer func() { dm.status = Ready }()
+
 	config := utils.Config.UserConfig
 	folder1 := config.RefPath
 	folder2 := config.OutputPath
@@ -97,6 +123,27 @@ func (dm *DiffModule) Display(d *display.Display) {
 	// TODO: this means to move the table selector back here to access the closure variables
 
 	d.CurrentContainer().Title("Ref checker - "+strconv.Itoa(dm.totalScore), tview.AlignLeft)
+
+	switch dm.status {
+	case Disabled:
+		d.PrintPage(0, "$nb", "")
+		d.Println("This module is disabled.")
+		return
+	case DependencyFail:
+		d.PrintPage(0, "$nb", "")
+		d.Println("One or more dependencies have failed.\nCheck if you have the following installed:")
+		for _, dependency := range dm.GetDependencies() {
+			d.Println(dependency)
+		}
+		return
+	case FakeRunning:
+		fallthrough
+	case Running:
+		d.PrintPage(0, "$nb", "")
+		d.Println("This module is currently running. Please wait")
+		return
+	default:
+	}
 
 	if len(dm.Issues) == 0 {
 		d.CurrentContainer().Print("All files matched!")
@@ -156,6 +203,12 @@ func (dm *DiffModule) Display(d *display.Display) {
 
 func (dm *DiffModule) Dump() {
 	fmt.Printf("===== %s - %d =====\n\n", "Ref checker", dm.totalScore)
+
+	if dm.status != Ready {
+		fmt.Println("This module is disabled.")
+		return
+	}
+
 	if len(dm.Issues) > 0 {
 		fmt.Println(dm.ModuleError.String())
 	} else {
@@ -251,11 +304,15 @@ func showSideBySideComparison(display display.Display, result FileCompareResult)
 */
 
 func (dm *DiffModule) Reset() {
+	if dm.status == Disabled || dm.status == DependencyFail {
+		return
+	}
 	dm.totalScore = 0
 	dm.Issues = nil
 	dm.results = nil
 	dm.matchCount = 0
 	dm.totalFiles = 0
+	dm.status = FakeRunning
 }
 
 func (dm *DiffModule) Score() int {

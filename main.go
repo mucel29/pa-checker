@@ -7,7 +7,6 @@ import (
 	"checker-pa/src/utils"
 	_ "embed"
 	"flag"
-	"log"
 )
 
 //go:embed res/module_config.json
@@ -27,25 +26,27 @@ func main() {
 
 	err := utils.InitConfig(defaultUserConfigStr, moduleConfigStr)
 	if err != nil {
-		log.Fatalln("FATAL ERROR DETECTED! " + err.Error() + "\n ABORTING!")
+		utils.Fatal("FATAL ERROR DETECTED! " + err.Error() + "\n ABORTING!")
 	}
 
-	// TODO: check for user config
 	m, err := manager.NewManager()
 
 	if err != nil {
-		log.Fatalln("FATAL ERROR DETECTED! " + err.Error() + "\n ABORTING!")
-	}
-
-	err = m.Run()
-	if err != nil {
-		log.Fatalln("FATAL ERROR DETECTED! " + err.Error() + "\n ABORTING!")
+		utils.Fatal("FATAL ERROR DETECTED! " + err.Error() + "\n ABORTING!")
 	}
 
 	// TODO?: make this return an error as well?
-	m.Check()
+	// m.Check()
 
 	if useInteractive {
+
+		go func() {
+			err := m.Run()
+			if err != nil {
+				utils.Fatal("FATAL ERROR DETECTED! " + err.Error() + "\n ABORTING!")
+
+			}
+		}()
 
 		utils.Log("Interactive Display")
 		d := display.NewDisplay()
@@ -57,6 +58,11 @@ func main() {
 		d.Enable()
 
 	} else {
+		err = m.Run()
+		if err != nil {
+			utils.Fatal("FATAL ERROR DETECTED! " + err.Error() + "\n ABORTING!")
+		}
+
 		utils.Log("Basic Display")
 
 		for _, module := range m.Modules {
