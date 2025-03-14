@@ -72,6 +72,7 @@ func Log(str string) {
 
 func Fatal(str string) {
 	logger.Error(str)
+	fmt.Println(str)
 	os.Exit(1)
 }
 

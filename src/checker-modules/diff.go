@@ -31,6 +31,7 @@ type FileCompareResult struct {
 	filename string
 	matched  bool
 	diffs    []diffmatchpatch.Diff
+	points   int
 	FormattedOutput
 }
 type DiffModule struct {
@@ -80,6 +81,10 @@ func (dm *DiffModule) GetResult() string {
 	return fmt.Sprintf("%d / %d", dm.matchCount, dm.totalFiles)
 }
 
+func (dm *DiffModule) Panic() {
+	dm.status = Panic
+}
+
 func (dm *DiffModule) Run() {
 	dm.status = Running
 	defer func() { dm.status = Ready }()
@@ -104,10 +109,11 @@ func (dm *DiffModule) Run() {
 	dm.totalFiles = numFiles
 
 	// Calculate score based on matched files
-	dm.totalScore = int((float64(matchedCount) / float64(numFiles)) * 100)
+	// dm.totalScore = int((float64(matchedCount) / float64(numFiles)) * 100)
 
 	// Add issues for mismatched files
 	for _, result := range dm.results {
+		dm.totalScore += result.points
 		if !result.matched {
 			dm.Issues = append(dm.Issues, ModuleIssue{
 				Message: fmt.Sprintf("File %s has differences", result.filename),
@@ -142,6 +148,10 @@ func (dm *DiffModule) Display(d *display.Display) {
 		d.PrintPage(0, "$nb", "")
 		d.Println("This module is currently running. Please wait")
 		return
+	case Panic:
+		d.PrintPage(0, "$nb", "")
+		d.Println("The checker went into panic. Check the config and run again")
+		return
 	default:
 	}
 
@@ -158,13 +168,13 @@ func (dm *DiffModule) Display(d *display.Display) {
 	currentCol := 0
 
 	for _, result := range dm.results {
-		// utils.Log(result.filename)
+		utils.Log(result.filename)
 		if currentRow >= MaxRow && currentCol < MaxCol {
 			currentRow = 0
 			currentCol++
 		}
 
-		cell := tview.NewTableCell(result.filename)
+		cell := tview.NewTableCell(fmt.Sprintf("[%02d] %s", result.points, result.filename))
 
 		if result.matched {
 			cell.SetTextColor(tcell.ColorGreen)
@@ -316,7 +326,7 @@ func (dm *DiffModule) Reset() {
 }
 
 func (dm *DiffModule) Score() int {
-	return dm.totalScore
+	return int(float32(dm.totalScore) * utils.Config.RefChecker.Grade)
 }
 
 func readFile(filename string) (string, error) {
@@ -376,7 +386,7 @@ func (dm *DiffModule) compareFilesInFolders(folder1, folder2 string) int {
 	ar.Results = make([]FileCompareResult, len(utils.Config.Tests))
 
 	for i, test := range utils.Config.Tests {
-		utils.Log(strconv.Itoa(i))
+		utils.Log(test.DisplayName)
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -384,8 +394,8 @@ func (dm *DiffModule) compareFilesInFolders(folder1, folder2 string) int {
 			file1 := fmt.Sprintf("%s/%s.ref", folder1, test.File)
 			file2 := fmt.Sprintf("%s/%s.out", folder2, test.File)
 
-			utils.Log(file1)
-			utils.Log(file2)
+			// utils.Log(file1)
+			// utils.Log(file2)
 
 			// TODO: change the return into some kind of error
 
@@ -402,9 +412,11 @@ func (dm *DiffModule) compareFilesInFolders(folder1, folder2 string) int {
 			dmp := diffmatchpatch.New()
 			diffs := dmp.DiffMain(text1, text2, false)
 
+			points := 0
 			matched := len(diffs) == 1 && diffs[0].Type == diffmatchpatch.DiffEqual
 			if matched {
 				ar.inc()
+				points = test.Score
 			}
 
 			utils.Log("Checked" + test.DisplayName)
@@ -413,6 +425,7 @@ func (dm *DiffModule) compareFilesInFolders(folder1, folder2 string) int {
 				filename:        test.DisplayName,
 				matched:         matched,
 				diffs:           diffs,
+				points:          points,
 				FormattedOutput: generateFormattedOutput(diffs),
 			})
 

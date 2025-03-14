@@ -287,15 +287,29 @@ func (m *Menu) displayTutorial() {
 	modal := tview.NewModal()
 	modal.SetTitle("TUTORIAL")
 	modal.SetText("TUTORIAL\nTUTORIAL\nTUTORIAL\nTUTORIAL\n")
+	modal.SetBackgroundColor(tcell.ColorDefault)
 	modal.AddButtons([]string{"OK"})
+	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEnter {
+			utils.Config.Tutorial = false
+			utils.SaveUserConfig()
+			m.App.SetRoot(m.Root, true)
+			m.App.SetFocus(m.nav)
+			m.displayRef()
+		}
+
+		return nil
+	})
 	modal.SetDoneFunc(func(_ int, _ string) {
 		utils.Config.Tutorial = false
 		utils.SaveUserConfig()
 		m.App.SetRoot(m.Root, true)
+		m.App.SetFocus(m.nav)
 		m.displayRef()
 	})
 
 	m.App.SetRoot(modal, true)
+	m.App.SetFocus(modal)
 }
 
 func colorScore(score int) string {

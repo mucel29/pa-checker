@@ -32,6 +32,7 @@ const (
 	FakeRunning
 	Disabled
 	DependencyFail
+	Panic
 )
 
 func (ms ModuleStatus) String() string {
@@ -46,6 +47,8 @@ func (ms ModuleStatus) String() string {
 		return "[gray]Disabled[-]"
 	case DependencyFail:
 		return "[red]ERR[-]"
+	case Panic:
+		return "[red]PANIC![-]"
 	default:
 		return "UNKNOWN"
 	}
@@ -64,6 +67,7 @@ type CheckerModule interface {
 	Disable(fail bool)
 	Enable()
 	GetStatus() ModuleStatus
+	Panic()
 }
 
 func (err *ModuleError) String() string {

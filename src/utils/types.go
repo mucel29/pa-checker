@@ -12,7 +12,8 @@ type Test struct {
 }
 
 type RefChecker struct {
-	OutputDependent bool `json:"output_dependent"`
+	OutputDependent bool    `json:"output_dependent"`
+	Grade           float32 `json:"grade"`
 }
 
 type CommitChecker struct {
@@ -21,6 +22,7 @@ type CommitChecker struct {
 	MinCommits      int      `json:"minCommits"`
 	UseFormat       bool     `json:"useFormat"`
 	Score           int      `json:"score"`
+	Grade           float32  `json:"grade"`
 }
 
 type MemoryChecker struct {
@@ -29,12 +31,14 @@ type MemoryChecker struct {
 	MaxWarning      int      `json:"maxWarning"`
 	MaxLeak         int      `json:"maxLeak"`
 	Score           int      `json:"score"`
+	Grade           float32  `json:"grade"`
 }
 
 type StyleChecker struct {
 	Dependencies    []string `json:"dependencies"`
 	OutputDependent bool     `json:"output_dependent"`
 	ScoreThreshold  int      `json:"score_threshold"`
+	Grade           float32  `json:"grade"`
 	Thresholds      []struct {
 		Under int `json:"under"`
 		Score int `json:"score"`

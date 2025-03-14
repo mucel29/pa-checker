@@ -78,6 +78,8 @@ func NewDisplay() *Display {
 		return event
 	})
 
+	tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
+
 	return display
 }
 

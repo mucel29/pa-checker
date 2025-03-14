@@ -40,16 +40,16 @@ func main() {
 
 	if useInteractive {
 
+		utils.Log("Interactive Display")
+		d := display.NewDisplay()
+
 		go func() {
 			err := m.Run()
 			if err != nil {
+				defer d.Stop()
 				utils.Fatal("FATAL ERROR DETECTED! " + err.Error() + "\n ABORTING!")
-
 			}
 		}()
-
-		utils.Log("Interactive Display")
-		d := display.NewDisplay()
 
 		mn := menu.Menu{Display: d, Manager: m}
 

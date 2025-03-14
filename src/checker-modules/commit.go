@@ -52,6 +52,10 @@ func (cc *CommitChecker) GetResult() string {
 	return strconv.Itoa(cc.score)
 }
 
+func (cc *CommitChecker) Panic() {
+	cc.status = Panic
+}
+
 func (cc *CommitChecker) Reset() {
 	if cc.status == Disabled || cc.status == DependencyFail {
 		return
@@ -63,7 +67,7 @@ func (cc *CommitChecker) Reset() {
 }
 
 func (cc *CommitChecker) Score() int {
-	return cc.score
+	return int(float32(cc.score) * utils.Config.CommitChecker.Grade)
 }
 
 func (cc *CommitChecker) Display(d *display.Display) {
@@ -87,6 +91,10 @@ func (cc *CommitChecker) Display(d *display.Display) {
 		fallthrough
 	case Running:
 		d.Println("This module is currently running. Please wait")
+		return
+	case Panic:
+		d.PrintPage(0, "$nb", "")
+		d.Println("The checker went into panic. Check the config and run again")
 		return
 	default:
 	}

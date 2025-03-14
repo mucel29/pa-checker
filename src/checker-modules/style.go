@@ -56,6 +56,10 @@ func (sc *StyleChecker) GetResult() string {
 	return fmt.Sprintf("%d issues", len(sc.Issues))
 }
 
+func (sc *StyleChecker) Panic() {
+	sc.status = Panic
+}
+
 func (sc *StyleChecker) Display(d *display.Display) {
 
 	switch sc.status {
@@ -72,6 +76,10 @@ func (sc *StyleChecker) Display(d *display.Display) {
 		fallthrough
 	case Running:
 		d.Println("This module is currently running. Please wait")
+		return
+	case Panic:
+		d.PrintPage(0, "$nb", "")
+		d.Println("The checker went into panic. Check the config and run again")
 		return
 	default:
 	}
@@ -177,7 +185,7 @@ func (sc *StyleChecker) Score() int {
 		return 0
 	}
 
-	return sc.totalScore
+	return int(float32(sc.totalScore) * utils.Config.StyleChecker.Grade)
 }
 
 func (sc *StyleChecker) Run() {

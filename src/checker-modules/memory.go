@@ -185,7 +185,11 @@ func (mc *MemoryChecker) Reset() {
 }
 
 func (mc *MemoryChecker) Score() int {
-	return mc.score
+	return int(float32(mc.score) * utils.Config.MemoryChecker.Grade)
+}
+
+func (mc *MemoryChecker) Panic() {
+	mc.status = Panic
 }
 
 func (mc *MemoryChecker) getTotalIssues() int {
@@ -233,6 +237,10 @@ func (mc *MemoryChecker) Display(d *display.Display) {
 		// Disable border
 		d.PrintPage(0, "$nb", "")
 		d.Println("This module is currently running. Please wait")
+		return
+	case Panic:
+		d.PrintPage(0, "$nb", "")
+		d.Println("The checker went into panic. Check the config and run again")
 		return
 	default:
 	}

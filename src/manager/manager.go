@@ -276,7 +276,13 @@ func (m *Manager) Run() error {
 	m.checkCapabilities()
 
 	if _, err := exec.LookPath(utils.Config.ExecutablePath); err != nil {
-		return fmt.Errorf("executable not found: %s", utils.Config.ExecutablePath)
+		for _, module := range m.Modules {
+			module.Panic()
+		}
+		m.StatusPing("[ERR] " + utils.Config.ExecutablePath + " not found")
+		// This one is recoverable, don't crash
+		// return fmt.Errorf("executable not found: %s", utils.Config.ExecutablePath)
+		return nil
 	}
 
 	start := time.Now()
@@ -296,7 +302,13 @@ func (m *Manager) Run() error {
 	// Make sure output path exists
 	if err := os.Mkdir(utils.ConfigMacros["OUT_DIR"], 0777); err != nil {
 		if !errors.Is(err, os.ErrExist) {
-			return err
+			for _, module := range m.Modules {
+				module.Panic()
+			}
+			m.StatusPing("[ERR] could not create directory: " + utils.Config.OutputPath)
+			// This one is recoverable, don't crash
+			// return err
+			return nil
 		}
 	}
 
