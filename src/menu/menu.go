@@ -214,6 +214,10 @@ func (m *Menu) displayRef() {
 func (m *Menu) displayStyle() {
 	m.CurrentContainer().Clear()
 	m.redraw = func() {
+		// Pop the pages until the nav page
+		for m.IsStacked() {
+			m.PreviousPage()
+		}
 		m.displayStyle()
 	}
 	checkermodules.AvailableModules["style_checker"].Display(m.Display)
