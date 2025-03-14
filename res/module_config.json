@@ -105,7 +105,9 @@
   ],
 
   "ref_checker": {
-    "output_dependent": true
+    "output_dependent": true,
+    "grade": 0.5
+
 
   },
   "commit_checker": {
@@ -113,19 +115,24 @@
     "output_dependent": false,
     "minCommits": 5,
     "useFormat": true,
-    "score": 10
+    "score": 10,
+    "grade": 0.1
+
   },
   "memory_checker": {
     "dependencies": ["valgrind"],
     "output_dependent": true,
     "maxWarnings": 10,
     "maxLeak": 100, // MB
-    "score": 5
+    "score": 5,
+    "grade": 0.2
+
   },
   "style_checker": {
     "dependencies": ["cppcheck"],
     "output_dependent": false,
     "score_threshold": 60,
+    "grade": 0.2,
     "thresholds": [
       {
         "under": 5,
