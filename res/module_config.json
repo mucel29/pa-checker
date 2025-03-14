@@ -6,130 +6,101 @@
   "macros": {
     "MACRO": "test123",
     "TEST_DIR": "$SRC_DIR/teste",
-    "TEST_TEST_DIR": "$TEST_DIR/teste2"
+    "TEST_TEST_DIR": "$TEST_DIR/teste2",
+    "DATE": "$SRC_DIR/date/$FILE/d.in",
+    "CERINTE": "$SRC_DIR/date/$FILE/c.in"
   },
 
   "tests": [
     {
-      "displayName": "data1",
-      "file": "data1",
-      "args": ["$IN", "$OUT"],
-      "score": 2
+      "displayName": "Test 1",
+      "file": "t1",
+      "args": ["$CERINTE", "$DATE", "$OUT"],
+      "score": 5
     },
     {
-      "displayName": "data2",
-      "file": "data2",
-      "args": ["$IN", "$OUT"],
-      "score": 3
+      "displayName": "Test 2",
+      "file": "t2",
+      "args": ["$CERINTE", "$DATE", "$OUT"],
+      "score": 7
     },
     {
-      "displayName": "data3",
-      "file": "data3",
-      "args": ["$IN", "$OUT"],
-      "score": 3
+      "displayName": "Test 3",
+      "file": "t3",
+      "args": ["$CERINTE", "$DATE", "$OUT"],
+      "score": 8
     },
     {
-      "displayName": "data4",
-      "file": "data4",
-      "args": ["$IN", "$OUT"],
-
-      "score": 4
+      "displayName": "Test 4",
+      "file": "t4",
+      "args": ["$CERINTE", "$DATE", "$OUT"],
+      "score": 5
     },
     {
-      "displayName": "data5",
-      "file": "data5",
-      "args": ["$IN", "$OUT"],
+      "displayName": "Test 5",
+      "file": "t5",
+      "args": ["$CERINTE", "$DATE", "$OUT"],
+      "score": 5
+    },
+    {
+      "displayName": "Test 6",
+      "file": "t6",
+      "args": ["$CERINTE", "$DATE", "$OUT"],
       "score": 10
     },
     {
-      "displayName": "data6",
-      "file": "data6",
-      "args": ["$IN", "$OUT"],
-      "score": 10
+      "displayName": "Test 7",
+      "file": "t7",
+      "args": ["$CERINTE", "$DATE", "$OUT"],
+      "score": 6
     },
     {
-      "displayName": "data7",
-      "file": "data7",
-      "args": ["$IN", "$OUT"],
-      "score": 10
+      "displayName": "Test 8",
+      "file": "t8",
+      "args": ["$CERINTE", "$DATE", "$OUT"],
+      "score": 9
     },
     {
-      "displayName": "data8",
-      "file": "data8",
-      "args": ["$IN", "$OUT"],
-      "score": 10
+      "displayName": "Test 9",
+      "file": "t9",
+      "args": ["$CERINTE", "$DATE", "$OUT"],
+      "score": 15
     },
     {
-      "displayName": "data9",
-      "file": "data9",
-      "args": ["$IN", "$OUT"],
-      "score": 10
+      "displayName": "Test 10",
+      "file": "t10",
+      "args": ["$CERINTE", "$DATE", "$OUT"],
+      "score": 5
     },
     {
-      "displayName": "data10",
-      "file": "data10",
-      "args": ["$IN", "$OUT"],
-      "score": 10
+      "displayName": "Test 11",
+      "file": "t11",
+      "args": ["$CERINTE", "$DATE", "$OUT"],
+      "score": 5
     },
     {
-      "displayName": "data11",
-      "file": "data11",
-      "args": ["$IN", "$OUT"],
-      "score": 10
+      "displayName": "Test 12",
+      "file": "t12",
+      "args": ["$CERINTE", "$DATE", "$OUT"],
+      "score": 5
     },
     {
-      "displayName": "data12",
-      "file": "data12",
-      "args": ["$IN", "$OUT"],
-      "score": 10
+      "displayName": "Test 13",
+      "file": "t13",
+      "args": ["$CERINTE", "$DATE", "$OUT"],
+      "score": 5
     },
     {
-      "displayName": "data13",
-      "file": "data13",
-      "args": ["$IN", "$OUT"],
-      "score": 10
+      "displayName": "Test 14",
+      "file": "t14",
+      "args": ["$CERINTE", "$DATE", "$OUT"],
+      "score": 5
     },
     {
-      "displayName": "data14",
-      "file": "data14",
-      "args": ["$IN", "$OUT"],
-      "score": 10
-    },
-    {
-      "displayName": "data15",
-      "file": "data15",
-      "args": ["$IN", "$OUT"],
-      "score": 10
-    },
-    {
-      "displayName": "data16",
-      "file": "data16",
-      "args": ["$IN", "$OUT"],
-      "score": 10
-    },
-    {
-      "displayName": "data17",
-      "file": "data17",
-      "args": ["$IN", "$OUT"],
-      "score": 10
-    },
-    {
-      "displayName": "data18",
-      "file": "data18",
-      "args": ["$IN", "$OUT"],
-      "score": 10
-    },
-    {
-      "displayName": "data19",
-      "file": "data19",
-      "args": ["$IN", "$OUT"],
-      "score": 10
-    },
-    {
-      "displayName": "data20",
-      "file": "data20",
-      "args": ["$IN", "$OUT"],
-      "score": 10
+      "displayName": "Test 15",
+      "file": "t15",
+      "args": ["$CERINTE", "$DATE", "$OUT"],
+      "score": 5
     }
   ],
 
