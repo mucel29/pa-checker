@@ -349,7 +349,7 @@ func (m *Manager) Run() error {
 
 	var ranTests int32
 
-	for _, test := range utils.Config.Tests {
+	for i, test := range utils.Config.Tests {
 		wg.Add(1)
 		go func() {
 			defer func() { wg.Done(); atomic.AddInt32(&ranTests, 1) }()
@@ -359,6 +359,7 @@ func (m *Manager) Run() error {
 				"FILE": test.File,
 				"IN":   fmt.Sprintf("%s/%s.in", utils.ConfigMacros["IN_DIR"], test.File),
 				"OUT":  fmt.Sprintf("%s/%s.out", utils.ConfigMacros["OUT_DIR"], test.File),
+				"N":    strconv.Itoa(i),
 			}
 
 			var processedArgs []string
