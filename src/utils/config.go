@@ -25,6 +25,13 @@ var Config struct {
 func InitConfig(defaultUserConfigStr string, moduleConfigStr string) error {
 	var err error
 
+	logFile, err = os.Create("./checker_log.txt")
+	if err != nil {
+		return err
+	}
+
+	logger = slog.New(slog.NewTextHandler(logFile, nil))
+
 	Config.UserConfig, err = NewUserConfig(defaultUserConfigStr)
 	if err != nil {
 		return err
@@ -36,13 +43,6 @@ func InitConfig(defaultUserConfigStr string, moduleConfigStr string) error {
 	}
 
 	Config.DefaultUserConfig = defaultUserConfigStr
-
-	logFile, err = os.Create("./log.txt")
-	if err != nil {
-		return err
-	}
-
-	logger = slog.New(slog.NewTextHandler(logFile, nil))
 
 	return nil
 }
@@ -68,6 +68,16 @@ func SaveUserConfig() {
 
 func Log(str string) {
 	logger.Info(str)
+}
+
+func Err(str string) {
+	logger.Error(str)
+}
+
+func Fatal(str string) {
+	logger.Error(str)
+	fmt.Println(str)
+	os.Exit(1)
 }
 
 var ConfigMacros = make(map[string]string)

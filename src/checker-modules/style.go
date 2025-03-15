@@ -10,6 +10,8 @@ import (
 	"math"
 	"os"
 	"os/exec"
+	"slices"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -22,20 +24,58 @@ import (
 type StyleChecker struct {
 	ModuleOutput
 	totalScore int
+	status     ModuleStatus
 }
 
 func (sc *StyleChecker) GetName() string {
-	return "style_checker"
+	return "STYLE"
 }
 
 func (sc *StyleChecker) IsOutputDependent() bool {
 	return utils.Config.StyleChecker.OutputDependent
 }
 
-func (sc *StyleChecker) Display(d *display.Display) {
-	// Display module summary
-	d.CurrentContainer().Title("Style checker - "+strconv.Itoa(int(sc.totalScore)), tview.AlignLeft)
+func (sc *StyleChecker) GetDependencies() []string { return utils.Config.StyleChecker.Dependencies }
 
+func (sc *StyleChecker) Disable(fail bool) {
+	if fail {
+		sc.status = DependencyFail
+	} else {
+		sc.status = Disabled
+	}
+}
+
+func (sc *StyleChecker) Enable() {
+	sc.status = Queued
+}
+
+func (sc *StyleChecker) GetStatus() ModuleStatus {
+	return sc.status
+}
+
+func (sc *StyleChecker) GetResult() string {
+	return fmt.Sprintf("%d issues", len(sc.Issues))
+}
+
+func (sc *StyleChecker) Panic() {
+	sc.status = Panic
+}
+
+func (sc *StyleChecker) Display(d *display.Display) {
+
+	// Display module summary
+	d.CurrentContainer().Title("Style checker - "+strconv.Itoa(sc.totalScore), tview.AlignLeft)
+
+	if statusStr := StatusStr(sc); statusStr != "" {
+		d.PrintPage(0, "$nb", statusStr)
+		return
+	}
+
+	if len(sc.Issues) == 0 {
+		d.PrintPage(0, "$nb", "Now this is some piece of art you've written!")
+	}
+
+	// TODO: also sort issues by line number and col after grouping
 	groups := sc.ModuleError.groupIssues(func(issue *ModuleIssue) string {
 		return issue.File
 	})
@@ -49,14 +89,15 @@ func (sc *StyleChecker) Display(d *display.Display) {
 
 	fileTable.SetInputCapture(utils.TableSelector(len(groups), fileTable))
 
-	currentRow := 0
-	currentCol := 0
+	var keys []string
 
-	for file := range groups {
-		if currentRow >= MaxRow && currentCol < MaxCol {
-			currentRow = 0
-			currentCol++
-		}
+	for k := range groups {
+		keys = append(keys, k)
+	}
+
+	sort.Strings(keys)
+
+	for i, file := range keys {
 
 		cell := tview.NewTableCell(file)
 
@@ -72,6 +113,16 @@ func (sc *StyleChecker) Display(d *display.Display) {
 
 			d.PrintPage(0, "$nb", "")
 
+			// Sort issues by line number and column
+			slices.SortStableFunc(groups[file], func(a, b ModuleIssue) int {
+				lineDiff := a.Line - b.Line
+				if lineDiff != 0 {
+					return lineDiff
+				}
+
+				return a.Col - b.Col
+			})
+
 			for _, issue := range groups[file] {
 				d.Println(issue.Message)
 			}
@@ -81,9 +132,7 @@ func (sc *StyleChecker) Display(d *display.Display) {
 
 			return false
 		})
-		fileTable.SetCell(currentRow, currentCol, cell)
-
-		currentRow++
+		fileTable.SetCell(i, 0, cell)
 	}
 
 	firstCell := fileTable.GetCell(0, 0)
@@ -100,13 +149,23 @@ func (sc *StyleChecker) Display(d *display.Display) {
 
 func (sc *StyleChecker) Dump() {
 	fmt.Printf("===== Style Checker - %d =====\n\n", sc.totalScore)
+
+	if sc.status != Ready {
+		fmt.Println("The commit module is disabled.")
+		return
+	}
+
 	fmt.Println(sc.ModuleError.String())
 	fmt.Println()
 }
 
 func (sc *StyleChecker) Reset() {
+	if sc.status == Disabled || sc.status == DependencyFail {
+		return
+	}
 	sc.Issues = nil
 	sc.totalScore = 0
+	sc.status = Queued
 }
 
 func (sc *StyleChecker) Score() int {
@@ -114,21 +173,26 @@ func (sc *StyleChecker) Score() int {
 		return 0
 	}
 
-	return sc.totalScore
+	return int(float32(sc.totalScore) * utils.Config.StyleChecker.Grade)
 }
 
 func (sc *StyleChecker) Run() {
+	sc.status = Running
+	defer func() { sc.status = Ready }()
+
 	// Check if cppcheck is installed
-	if _, err := exec.LookPath("cppcheck"); err != nil {
-		sc.Issues = append(sc.Issues, ModuleIssue{
-			Message:     "cppcheck is not installed",
-			Line:        0,
-			Col:         0,
-			ShowLineCol: false,
-		})
-		sc.totalScore = -1 // Module failure
-		return
-	}
+	/*
+		if _, err := exec.LookPath("cppcheck"); err != nil {
+			sc.Issues = append(sc.Issues, ModuleIssue{
+				Message:     "cppcheck is not installed",
+				Line:        0,
+				Col:         0,
+				ShowLineCol: false,
+			})
+			sc.totalScore = -1 // Module failure
+			return
+		}
+	*/
 
 	config := utils.Config.UserConfig
 

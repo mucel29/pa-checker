@@ -6,7 +6,7 @@ temp/
 .checker_temp/
 
 .DS_Store
-log.txt
+*log.txt
 
 config.json
 config*.json

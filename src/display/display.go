@@ -41,7 +41,7 @@ type Page struct {
 
 type Display struct {
 	pageStack *PageStack
-	root      *tview.Flex
+	Root      *tview.Flex
 	App       *tview.Application
 }
 
@@ -57,13 +57,13 @@ func NewDisplay() *Display {
 	display.pageStack = &PageStack{}
 	display.NewPage("[yellow]Interactive Display", true)
 
-	// Configure the root element
-	display.root = tview.NewFlex()
-	display.root.SetBorder(true)
-	display.root.SetDirection(tview.FlexRow)
+	// Configure the Root element
+	display.Root = tview.NewFlex()
+	display.Root.SetBorder(true)
+	display.Root.SetDirection(tview.FlexRow)
 
 	// Configure App
-	display.App = tview.NewApplication().SetRoot(display.root, true)
+	display.App = tview.NewApplication().SetRoot(display.Root, true)
 	display.App.EnableMouse(true)
 
 	display.App.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
@@ -78,17 +78,19 @@ func NewDisplay() *Display {
 		return event
 	})
 
+	tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
+
 	return display
 }
 
 func (d *Display) UpdateDisplay() {
 	// Clear the screen
-	d.root.Clear()
+	d.Root.Clear()
 
 	if d.currentPage().Title == "" {
-		d.root.SetTitle("[yellow]Interactive Display")
+		d.Root.SetTitle("[yellow]Interactive Display")
 	} else {
-		d.root.SetTitle(d.currentPage().Title)
+		d.Root.SetTitle(d.currentPage().Title)
 	}
 
 	// Add back the elements in the Page
@@ -96,7 +98,7 @@ func (d *Display) UpdateDisplay() {
 		if element.Hidden {
 			continue
 		}
-		d.root.AddItem(element.Element, element.Fixed, element.Proportion, element.Focused)
+		d.Root.AddItem(element.Element, element.Fixed, element.Proportion, element.Focused)
 	}
 	if d.App != nil {
 		d.App.ForceDraw()
@@ -119,7 +121,7 @@ func (d *Display) NewPage(title string, includeWContainer bool) {
 		d.currentPage().WritableContainer = NewWritableContainer(d)
 	}
 
-	if d.root != nil {
+	if d.Root != nil {
 		d.UpdateDisplay()
 	}
 }
@@ -136,6 +138,10 @@ func (d *Display) PreviousPage() {
 	d.App.SetFocus(d.CurrentContainer().Container)
 	d.UpdateDisplay()
 
+}
+
+func (d *Display) IsStacked() bool {
+	return d.pageStack.Len() > 1
 }
 
 func (d *Display) AddElement(element *PageElement) {

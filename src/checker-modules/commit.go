@@ -5,47 +5,84 @@ import (
 	"checker-pa/src/utils"
 	"errors"
 	"fmt"
+	"github.com/rivo/tview"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
-
-	"github.com/rivo/tview"
 )
 
 type CommitChecker struct {
 	ModuleOutput
 	commits []string
 	score   int
+	status  ModuleStatus
 }
 
-var ErrNotFound error = errors.New("The checker couldn't find git on your system. Are you sure it's installed?")
+var ErrNotFound = errors.New("The checker couldn't find git on your system. Are you sure it's installed?")
 
 func (*CommitChecker) GetName() string {
-	return "commit_checker"
+	return "COMMIT"
 }
 
 func (*CommitChecker) IsOutputDependent() bool {
 	return utils.Config.CommitChecker.OutputDependent
 }
 
+func (*CommitChecker) GetDependencies() []string { return utils.Config.CommitChecker.Dependencies }
+
+func (cc *CommitChecker) Disable(fail bool) {
+	if fail {
+		cc.status = DependencyFail
+	} else {
+		cc.status = Disabled
+	}
+}
+
+func (cc *CommitChecker) Enable() {
+	cc.status = Queued
+}
+
+func (cc *CommitChecker) GetStatus() ModuleStatus {
+	return cc.status
+}
+
+func (cc *CommitChecker) GetResult() string {
+	// TODO: add colors?
+	return strconv.Itoa(cc.score)
+}
+
+func (cc *CommitChecker) Panic() {
+	cc.status = Panic
+}
+
 func (cc *CommitChecker) Reset() {
+	if cc.status == Disabled || cc.status == DependencyFail {
+		return
+	}
 	cc.commits = nil
 	cc.Issues = nil
 	cc.score = 0
+	cc.status = Queued
 }
 
 func (cc *CommitChecker) Score() int {
-	return cc.score
+	return int(float32(cc.score) * utils.Config.CommitChecker.Grade)
 }
 
 func (cc *CommitChecker) Display(d *display.Display) {
-	points := utils.Config.CommitChecker.Score
 
-	d.CurrentContainer().Title("Commit checker - "+strconv.Itoa(int(cc.score)), tview.AlignLeft)
+	d.CurrentContainer().Title("Commit checker - "+strconv.Itoa(cc.score), tview.AlignLeft)
 
 	// Disable border
 	d.PrintPage(0, "$nb", "")
+
+	if statusStr := StatusStr(cc); statusStr != "" {
+		d.PrintPage(0, "$nb", statusStr)
+		return
+	}
+
+	points := utils.Config.CommitChecker.Score
 
 	if len(cc.Issues) == 0 {
 		d.Println("No issues found!")
@@ -73,6 +110,12 @@ func (cc *CommitChecker) Display(d *display.Display) {
 
 func (cc *CommitChecker) Dump() {
 	fmt.Printf("===== Commit checker - %d =====\n\n", cc.score)
+
+	if cc.status != Ready {
+		fmt.Println("This module is disabled.")
+		return
+	}
+
 	fmt.Println(cc.ModuleError.String())
 	fmt.Println()
 }
@@ -95,6 +138,9 @@ func checkCommits(line string) error {
 }
 
 func (cc *CommitChecker) Run() {
+	cc.status = Running
+	defer func() { cc.status = Ready }()
+
 	args := []string{"log", "--oneline", "--all"}
 	cmd := exec.Command("git", args...)
 
