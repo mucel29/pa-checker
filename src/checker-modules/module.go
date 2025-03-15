@@ -3,6 +3,7 @@ package checkermodules
 import (
 	"checker-pa/src/display"
 	"strconv"
+	"strings"
 )
 
 type ModuleIssue struct {
@@ -29,7 +30,7 @@ type ModuleStatus int
 const (
 	Ready ModuleStatus = iota
 	Running
-	FakeRunning
+	Queued
 	Disabled
 	DependencyFail
 	Panic
@@ -39,8 +40,8 @@ func (ms ModuleStatus) String() string {
 	switch ms {
 	case Ready:
 		return "[green]Ready[-]"
-	case FakeRunning:
-		fallthrough
+	case Queued:
+		return "[yellow]Queued[-]"
 	case Running:
 		return "[yellow]Running[-]"
 	case Disabled:
@@ -76,7 +77,7 @@ func (err *ModuleError) String() string {
 	for _, issue := range err.Issues {
 		message += "\n"
 		if issue.ShowLineCol {
-			message += strconv.Itoa(int(issue.Line)) + ":" + strconv.Itoa(int(issue.Col)) + " "
+			message += strconv.Itoa(issue.Line) + ":" + strconv.Itoa(issue.Col) + " "
 		}
 		message += issue.Message + "\n"
 	}
@@ -93,4 +94,27 @@ func (err *ModuleError) groupIssues(groupBy func(issue *ModuleIssue) string) map
 	}
 
 	return group
+}
+
+func StatusStr(cm CheckerModule) string {
+	switch cm.GetStatus() {
+	case Disabled:
+		return "This module is disabled."
+	case DependencyFail:
+		msg := strings.Builder{}
+		msg.WriteString("One or more dependencies have failed.\nCheck if you have the following installed:")
+		for _, dependency := range cm.GetDependencies() {
+			msg.WriteString(dependency)
+		}
+		return msg.String()
+	case Queued:
+		fallthrough
+	case Running:
+		return "This module is currently running. Please wait"
+	case Panic:
+		return "The checker went into panic. Check the config and run again"
+	default:
+	}
+
+	return ""
 }

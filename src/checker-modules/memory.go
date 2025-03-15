@@ -164,7 +164,7 @@ func (mc *MemoryChecker) Disable(fail bool) {
 }
 
 func (mc *MemoryChecker) Enable() {
-	mc.status = Ready
+	mc.status = Queued
 }
 
 func (mc *MemoryChecker) GetStatus() ModuleStatus {
@@ -181,7 +181,7 @@ func (mc *MemoryChecker) Reset() {
 	}
 	mc.tests = nil
 	mc.score = 0
-	mc.status = FakeRunning
+	mc.status = Queued
 }
 
 func (mc *MemoryChecker) Score() int {
@@ -217,32 +217,9 @@ func (mc *MemoryChecker) getStatus() TestStatus {
 func (mc *MemoryChecker) Display(d *display.Display) {
 	d.CurrentContainer().Title("Memory checker - "+strconv.Itoa(int(mc.score)), tview.AlignLeft)
 
-	switch mc.status {
-	case Disabled:
-		// Disable border
-		d.PrintPage(0, "$nb", "")
-		d.Println("This module is disabled.")
+	if statusStr := StatusStr(mc); statusStr != "" {
+		d.PrintPage(0, "$nb", statusStr)
 		return
-	case DependencyFail:
-		// Disable border
-		d.PrintPage(0, "$nb", "")
-		d.Println("One or more dependencies have failed.\nCheck if you have the following installed:")
-		for _, dependency := range mc.GetDependencies() {
-			d.Println(dependency)
-		}
-		return
-	case FakeRunning:
-		fallthrough
-	case Running:
-		// Disable border
-		d.PrintPage(0, "$nb", "")
-		d.Println("This module is currently running. Please wait")
-		return
-	case Panic:
-		d.PrintPage(0, "$nb", "")
-		d.Println("The checker went into panic. Check the config and run again")
-		return
-	default:
 	}
 
 	if mc.getStatus() == OK {
@@ -260,6 +237,8 @@ func (mc *MemoryChecker) Display(d *display.Display) {
 
 	currentRow := 0
 	currentCol := 0
+
+	MaxRow, MaxCol := utils.ComputeBestArea(len(mc.tests))
 
 	for _, test := range mc.tests {
 		if currentRow >= MaxRow && currentCol < MaxCol {
@@ -368,12 +347,14 @@ func (mc *MemoryChecker) Run() {
 
 			absTempPath, err := filepath.Abs(utils.Config.TempPath)
 			if err != nil {
-				panic(err)
+				utils.Err("Failed to get absolute temp")
+				return
 			}
 
 			data, err := os.ReadFile(fmt.Sprintf("%s/%s.xml", absTempPath, test.File))
 			if err != nil {
-				panic(err)
+				utils.Err(fmt.Sprintf("Failed to read file: %s.xml", test.File))
+				return
 			}
 
 			testResult := TestMemoryResult{testName: test.DisplayName}

@@ -70,6 +70,10 @@ func Log(str string) {
 	logger.Info(str)
 }
 
+func Err(str string) {
+	logger.Error(str)
+}
+
 func Fatal(str string) {
 	logger.Error(str)
 	fmt.Println(str)

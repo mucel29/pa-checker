@@ -10,6 +10,7 @@ import (
 	"math"
 	"os"
 	"os/exec"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -45,7 +46,7 @@ func (sc *StyleChecker) Disable(fail bool) {
 }
 
 func (sc *StyleChecker) Enable() {
-	sc.status = Ready
+	sc.status = Queued
 }
 
 func (sc *StyleChecker) GetStatus() ModuleStatus {
@@ -62,33 +63,19 @@ func (sc *StyleChecker) Panic() {
 
 func (sc *StyleChecker) Display(d *display.Display) {
 
-	switch sc.status {
-	case Disabled:
-		d.Println("This module is disabled.")
+	// Display module summary
+	d.CurrentContainer().Title("Style checker - "+strconv.Itoa(sc.totalScore), tview.AlignLeft)
+
+	if statusStr := StatusStr(sc); statusStr != "" {
+		d.PrintPage(0, "$nb", statusStr)
 		return
-	case DependencyFail:
-		d.Println("One or more dependencies have failed.\nCheck if you have the following installed:")
-		for _, dependency := range sc.GetDependencies() {
-			d.Println(dependency)
-		}
-		return
-	case FakeRunning:
-		fallthrough
-	case Running:
-		d.Println("This module is currently running. Please wait")
-		return
-	case Panic:
-		d.PrintPage(0, "$nb", "")
-		d.Println("The checker went into panic. Check the config and run again")
-		return
-	default:
 	}
 
-	// Display module summary
-	d.CurrentContainer().Title("Style checker - "+strconv.Itoa(int(sc.totalScore)), tview.AlignLeft)
+	if len(sc.Issues) == 0 {
+		d.PrintPage(0, "$nb", "Now this is some piece of art you've written!")
+	}
 
 	// TODO: also sort issues by line number and col after grouping
-
 	groups := sc.ModuleError.groupIssues(func(issue *ModuleIssue) string {
 		return issue.File
 	})
@@ -102,9 +89,6 @@ func (sc *StyleChecker) Display(d *display.Display) {
 
 	fileTable.SetInputCapture(utils.TableSelector(len(groups), fileTable))
 
-	currentRow := 0
-	currentCol := 0
-
 	var keys []string
 
 	for k := range groups {
@@ -113,11 +97,7 @@ func (sc *StyleChecker) Display(d *display.Display) {
 
 	sort.Strings(keys)
 
-	for _, file := range keys {
-		if currentRow >= MaxRow && currentCol < MaxCol {
-			currentRow = 0
-			currentCol++
-		}
+	for i, file := range keys {
 
 		cell := tview.NewTableCell(file)
 
@@ -133,6 +113,16 @@ func (sc *StyleChecker) Display(d *display.Display) {
 
 			d.PrintPage(0, "$nb", "")
 
+			// Sort issues by line number and column
+			slices.SortStableFunc(groups[file], func(a, b ModuleIssue) int {
+				lineDiff := a.Line - b.Line
+				if lineDiff != 0 {
+					return lineDiff
+				}
+
+				return a.Col - b.Col
+			})
+
 			for _, issue := range groups[file] {
 				d.Println(issue.Message)
 			}
@@ -142,9 +132,7 @@ func (sc *StyleChecker) Display(d *display.Display) {
 
 			return false
 		})
-		fileTable.SetCell(currentRow, currentCol, cell)
-
-		currentRow++
+		fileTable.SetCell(i, 0, cell)
 	}
 
 	firstCell := fileTable.GetCell(0, 0)
@@ -177,7 +165,7 @@ func (sc *StyleChecker) Reset() {
 	}
 	sc.Issues = nil
 	sc.totalScore = 0
-	sc.status = FakeRunning
+	sc.status = Queued
 }
 
 func (sc *StyleChecker) Score() int {

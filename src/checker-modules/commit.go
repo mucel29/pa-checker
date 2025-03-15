@@ -19,7 +19,7 @@ type CommitChecker struct {
 	status  ModuleStatus
 }
 
-var ErrNotFound error = errors.New("The checker couldn't find git on your system. Are you sure it's installed?")
+var ErrNotFound = errors.New("The checker couldn't find git on your system. Are you sure it's installed?")
 
 func (*CommitChecker) GetName() string {
 	return "COMMIT"
@@ -40,7 +40,7 @@ func (cc *CommitChecker) Disable(fail bool) {
 }
 
 func (cc *CommitChecker) Enable() {
-	cc.status = Ready
+	cc.status = Queued
 }
 
 func (cc *CommitChecker) GetStatus() ModuleStatus {
@@ -63,7 +63,7 @@ func (cc *CommitChecker) Reset() {
 	cc.commits = nil
 	cc.Issues = nil
 	cc.score = 0
-	cc.status = FakeRunning
+	cc.status = Queued
 }
 
 func (cc *CommitChecker) Score() int {
@@ -77,26 +77,9 @@ func (cc *CommitChecker) Display(d *display.Display) {
 	// Disable border
 	d.PrintPage(0, "$nb", "")
 
-	switch cc.status {
-	case Disabled:
-		d.Println("This module is disabled.")
+	if statusStr := StatusStr(cc); statusStr != "" {
+		d.PrintPage(0, "$nb", statusStr)
 		return
-	case DependencyFail:
-		d.Println("One or more dependencies have failed.\nCheck if you have the following installed:")
-		for _, dependency := range cc.GetDependencies() {
-			d.Println(dependency)
-		}
-		return
-	case FakeRunning:
-		fallthrough
-	case Running:
-		d.Println("This module is currently running. Please wait")
-		return
-	case Panic:
-		d.PrintPage(0, "$nb", "")
-		d.Println("The checker went into panic. Check the config and run again")
-		return
-	default:
 	}
 
 	points := utils.Config.CommitChecker.Score

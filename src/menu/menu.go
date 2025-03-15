@@ -78,6 +78,7 @@ func (m *Menu) displayOptions() {
 	fPath.SetFieldWidth(fieldWidth)
 
 	rValgrind := tview.NewCheckbox()
+	rValgrind.SetDisabled(false)
 	rValgrind.SetLabel("Valgrind")
 	rValgrind.SetChecked(utils.Config.RunValgrind)
 
@@ -116,6 +117,8 @@ func (m *Menu) displayOptions() {
 
 	for i, item := range items {
 		item.SetFormAttributes(labelWidth, labelColor, labelBgColor, fieldColor, fieldBgColor)
+		rValgrind.SetCheckedStyle(tcell.StyleDefault.Foreground(fieldColor).Background(fieldBgColor))
+		rValgrind.SetUncheckedStyle(tcell.StyleDefault.Foreground(fieldColor).Background(fieldBgColor))
 		// Update selected item on click
 		item.SetFocusFunc(func() {
 			firstLaunch = false
@@ -131,6 +134,9 @@ func (m *Menu) displayOptions() {
 		formItems[itemIndex].SetFormAttributes(labelWidth, labelColor, labelBgColor, fieldColor, fieldBgColor)
 		itemIndex = len(items)
 		rValgrind.SetFormAttributes(labelWidth, labelColor, labelBgColor, fieldSelColor, fieldSelBgColor)
+		rValgrind.SetCheckedStyle(tcell.StyleDefault.Foreground(fieldSelColor).Background(fieldSelBgColor))
+		rValgrind.SetUncheckedStyle(tcell.StyleDefault.Foreground(fieldSelColor).Background(fieldSelBgColor))
+
 	})
 
 	// Stop the input fields from changing cursor the end / beginning
@@ -147,6 +153,11 @@ func (m *Menu) displayOptions() {
 		if event.Key() == tcell.KeyUp || event.Key() == tcell.KeyDown {
 			oldItem := formItems[itemIndex]
 			oldItem.SetFormAttributes(labelWidth, labelColor, labelBgColor, fieldColor, fieldBgColor)
+			// Dirty hack to change checkbox style
+			if itemIndex == len(items) {
+				rValgrind.SetCheckedStyle(tcell.StyleDefault.Foreground(fieldColor).Background(fieldBgColor))
+				rValgrind.SetUncheckedStyle(tcell.StyleDefault.Foreground(fieldColor).Background(fieldBgColor))
+			}
 		}
 
 		if !firstLaunch {
@@ -171,7 +182,11 @@ func (m *Menu) displayOptions() {
 		currItem := formItems[itemIndex]
 		m.App.SetFocus(currItem)
 		currItem.SetFormAttributes(labelWidth, labelColor, labelBgColor, fieldSelColor, fieldSelBgColor)
-
+		// Dirty hack to change checkbox style
+		if itemIndex == len(items) {
+			rValgrind.SetCheckedStyle(tcell.StyleDefault.Foreground(fieldColor).Background(fieldBgColor))
+			rValgrind.SetUncheckedStyle(tcell.StyleDefault.Foreground(fieldColor).Background(fieldBgColor))
+		}
 		m.App.ForceDraw()
 	})
 
@@ -283,33 +298,57 @@ func (m *Menu) displayHome() {
 }
 */
 
+func centerView(view *tview.TextView) *tview.Flex {
+	proportion := 4
+	container := tview.NewFlex()
+	container.SetDirection(tview.FlexColumn)
+	container.AddItem(tview.NewBox(), 0, 1, false)
+	container.AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
+		AddItem(tview.NewBox(), 0, 1, false).
+		AddItem(view, 0, proportion, false).
+		AddItem(tview.NewBox(), 0, 1, false),
+		0, proportion, false)
+	container.AddItem(tview.NewBox(), 0, 1, false)
+
+	return container
+}
+
 func (m *Menu) displayTutorial() {
-	modal := tview.NewModal()
-	modal.SetTitle("TUTORIAL")
-	modal.SetText("TUTORIAL\nTUTORIAL\nTUTORIAL\nTUTORIAL\n")
-	modal.SetBackgroundColor(tcell.ColorDefault)
-	modal.AddButtons([]string{"OK"})
-	modal.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyEnter {
-			utils.Config.Tutorial = false
-			utils.SaveUserConfig()
-			m.App.SetRoot(m.Root, true)
-			m.App.SetFocus(m.nav)
-			m.displayRef()
-		}
+	tutorialArea := tview.NewTextView()
+	tutorialArea.SetTextAlign(tview.AlignCenter)
+	tutorialArea.SetDynamicColors(true)
+	tutorialArea.SetBorder(true)
+	tutorialArea.SetTitle("TUTORIAL")
+	tutorialArea.SetText(`
+[deeppink]"Credits"[-]: [[greenyellow]"cosmin"[-], [greenyellow]"Ciprian"[-], [greenyellow]"steffe"[-], [greenyellow]"Horicuz"[-]]
+
+Use the [yellow]mouse[-] or the [yellow]arrow keys[-] to navigate around
+
+Press [yellow]TAB[-] to switch between navigation or current screen
+
+Inside a full window press [yellow]ESC[-] to go back
+
+To close the program press [yellow]ESC[-] inside the main page or [yellow]Ctrl+C[-]
+
+To close this tutorial press [yellow]Any key[-]
+
+You can enable this back in the config
+`)
+	tutorialArea.SetBackgroundColor(tcell.ColorDefault)
+	centeredContainer := centerView(tutorialArea)
+	centeredContainer.SetInputCapture(func(_ *tcell.EventKey) *tcell.EventKey {
+		utils.Config.Tutorial = false
+		utils.SaveUserConfig()
+		m.createMainMenu()
+		m.App.SetRoot(m.Root, true)
+		m.App.SetFocus(m.nav)
+		m.UpdateDisplay()
 
 		return nil
 	})
-	modal.SetDoneFunc(func(_ int, _ string) {
-		utils.Config.Tutorial = false
-		utils.SaveUserConfig()
-		m.App.SetRoot(m.Root, true)
-		m.App.SetFocus(m.nav)
-		m.displayRef()
-	})
 
-	m.App.SetRoot(modal, true)
-	m.App.SetFocus(modal)
+	m.App.SetRoot(centeredContainer, true)
+	m.App.SetFocus(tutorialArea)
 }
 
 func colorScore(score int) string {
@@ -339,6 +378,7 @@ func (m *Menu) createMainMenu() {
 
 	m.nav = tview.NewList()
 	m.nav.SetBorderPadding(1, 1, 1, 1)
+	m.nav.SetSelectedStyle(tcell.StyleDefault.Foreground(tcell.ColorBlack).Background(tcell.ColorWhite))
 
 	m.nav.SetTitle("Navigation").
 		SetTitleAlign(tview.AlignLeft)
@@ -360,15 +400,31 @@ func (m *Menu) createMainMenu() {
 		// utils.Log(fmt.Sprintf("Navigation: %s", main))
 	})
 
-	m.nav.SetChangedFunc(func(_ int, _ string, _ string, _ rune) {
+	currNavItem := 0
+	selNavItem := 0
+
+	m.nav.SetChangedFunc(func(index int, _ string, _ string, _ rune) {
 		// utils.Log("changed func")
 		if clicked {
 			clicked = false
 			return
 		}
 		if m.launched {
+			selNavItem = index
 			m.nav.InputHandler()(tcell.NewEventKey(tcell.KeyEnter, 0, tcell.ModNone), nil)
+			currNavItem = index
 		}
+	})
+
+	m.nav.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEnter {
+			if currNavItem == selNavItem {
+				m.App.SetFocus(m.CurrentContainer().Container)
+				return nil
+			}
+		}
+
+		return event
 	})
 
 	/*
@@ -438,8 +494,10 @@ func (m *Menu) createMainMenu() {
 
 		fmt.Fprintf(tview.ANSIWriter(infoBox), "%s", summary.String())
 
+		utils.Log("redrawing")
 		if m.redraw != nil {
 			m.redraw()
+			m.App.ForceDraw()
 		}
 
 	}
@@ -447,11 +505,8 @@ func (m *Menu) createMainMenu() {
 	m.StatusPing("")
 
 	// m.displayHome()
-	if utils.Config.Tutorial {
-		m.displayTutorial()
-	} else {
-		m.displayRef()
-	}
+
+	m.displayRef()
 
 	m.AddElement(&display.PageElement{Element: mainContainer, Proportion: 1, Focused: false})
 	m.App.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
@@ -475,7 +530,7 @@ func (m *Menu) createMainMenu() {
 		if event.Rune() == '`' {
 			err := m.Run()
 			if err != nil {
-				utils.Log(err.Error())
+				utils.Err(err.Error())
 			}
 
 			return nil
@@ -484,11 +539,14 @@ func (m *Menu) createMainMenu() {
 		return event
 	})
 	m.App.SetFocus(m.nav)
-
+	m.launched = true
 }
 
 func (m *Menu) Launch() {
-	m.createMainMenu()
-	m.launched = true
+	if utils.Config.Tutorial {
+		m.displayTutorial()
+	} else {
+		m.createMainMenu()
+	}
 	m.UpdateDisplay()
 }

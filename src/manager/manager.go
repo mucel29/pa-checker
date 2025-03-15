@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -114,7 +115,7 @@ func NewManager() (*Manager, error) {
 				utils.Log("file change detected!")
 				err := m.Run()
 				if err != nil {
-					utils.Log("failed manager run with error: " + err.Error())
+					utils.Err("failed manager run with error: " + err.Error())
 				}
 			}
 			/*
@@ -236,18 +237,21 @@ func forwardBytes(bytes bytes.Buffer, filename string) error {
 	}
 	if err := os.Mkdir(absForward, 0777); err != nil {
 		if !errors.Is(err, os.ErrExist) {
+			utils.Err(fmt.Sprintf("failed creating forward directory: %s", absForward))
 			return err
 		}
 	}
 
 	f, err := os.Create(fmt.Sprintf("%s/%s", absForward, filename))
 	if err != nil {
+		utils.Err(fmt.Sprintf("failed creating forward file: %s", filename))
 		return err
 	}
 	defer f.Close()
 
 	_, err = f.Write(bytes.Bytes())
 	if err != nil {
+		utils.Err(fmt.Sprintf("failed writing to forward file: %s", filename))
 		return err
 	}
 
@@ -258,13 +262,26 @@ func forwardBytes(bytes bytes.Buffer, filename string) error {
 // TODO: should it be queued? idk how to cancel de current running routines
 
 func (m *Manager) IsRunning() bool {
+	// TODO: bug where the state is Queued instead of running, launching the run anyway
+	// quick fix: check if at least one module has already finished
+	oneReady := false
+	oneQueued := false
 	for _, module := range m.Modules {
-		if module.GetStatus() == checkermodules.Running {
+		utils.Log("status: " + strconv.Itoa(int(module.GetStatus())))
+		switch module.GetStatus() {
+		case checkermodules.Ready:
+			oneReady = true
+		case checkermodules.Running:
 			return true
+		case checkermodules.Queued:
+			oneQueued = true
+		default:
 		}
 	}
 
-	return false
+	// utils.Log(fmt.Sprintf("%t", oneReady && oneQueued))
+
+	return oneReady && oneQueued
 }
 
 func (m *Manager) Run() error {
@@ -272,6 +289,8 @@ func (m *Manager) Run() error {
 	if m.IsRunning() {
 		return errors.New("already running")
 	}
+
+	utils.Log("launched new run")
 
 	m.checkCapabilities()
 
@@ -321,7 +340,7 @@ func (m *Manager) Run() error {
 			go func() {
 				defer wg.Done()
 				defer utils.Log(module.GetName() + " done!")
-				if module.GetStatus() == checkermodules.FakeRunning {
+				if module.GetStatus() == checkermodules.Queued {
 					module.Run()
 				}
 			}()
@@ -357,6 +376,7 @@ func (m *Manager) Run() error {
 
 				execPath, err := filepath.Abs(utils.Config.ExecutablePath)
 				if err != nil {
+					utils.Err(fmt.Sprintf("failed getting executable path: %s", xmlPath))
 					return // err
 				}
 
@@ -381,16 +401,18 @@ func (m *Manager) Run() error {
 			start = time.Now()
 
 			if err := cmd.Run(); err != nil {
-				utils.Log("Error running " + test.File)
+				utils.Err("Error running " + test.File)
 			}
 
 			// Forward stdout
 			if err := forwardBytes(stdout, fmt.Sprintf("%s.stdout", test.File)); err != nil {
+				utils.Err(fmt.Sprintf("failed forwarding stdout %s", test.File))
 				return // err
 			}
 
 			// Forward stderr
 			if err := forwardBytes(stderr, fmt.Sprintf("%s.stderr", test.File)); err != nil {
+				utils.Err(fmt.Sprintf("failed forwarding stderr %s", test.File))
 				return // err
 			}
 
@@ -430,6 +452,7 @@ func (m *Manager) Run() error {
 	wg.Wait()
 	m.Check()
 	updateDisplay = false
+	utils.Log("finished updating display")
 	if m.StatusPing != nil {
 		m.StatusPing("")
 	}
@@ -445,7 +468,7 @@ func (m *Manager) Check() {
 			utils.Log("Running " + module.GetName())
 			go func() {
 				defer wg.Done()
-				if module.GetStatus() == checkermodules.FakeRunning {
+				if module.GetStatus() == checkermodules.Queued {
 					module.Run()
 				}
 			}()

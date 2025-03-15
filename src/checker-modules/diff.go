@@ -15,10 +15,12 @@ import (
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
+/*
 const (
 	MaxRow = 10
 	MaxCol = 5
 )
+*/
 
 // Store formatted output for side-by-side comparison
 type FormattedOutput struct {
@@ -70,7 +72,7 @@ func (dm *DiffModule) Disable(fail bool) {
 }
 
 func (dm *DiffModule) Enable() {
-	dm.status = Ready
+	dm.status = Queued
 }
 
 func (dm *DiffModule) GetStatus() ModuleStatus {
@@ -130,32 +132,13 @@ func (dm *DiffModule) Display(d *display.Display) {
 
 	d.CurrentContainer().Title("Ref checker - "+strconv.Itoa(dm.totalScore), tview.AlignLeft)
 
-	switch dm.status {
-	case Disabled:
-		d.PrintPage(0, "$nb", "")
-		d.Println("This module is disabled.")
+	if statusStr := StatusStr(dm); statusStr != "" {
+		d.PrintPage(0, "$nb", statusStr)
 		return
-	case DependencyFail:
-		d.PrintPage(0, "$nb", "")
-		d.Println("One or more dependencies have failed.\nCheck if you have the following installed:")
-		for _, dependency := range dm.GetDependencies() {
-			d.Println(dependency)
-		}
-		return
-	case FakeRunning:
-		fallthrough
-	case Running:
-		d.PrintPage(0, "$nb", "")
-		d.Println("This module is currently running. Please wait")
-		return
-	case Panic:
-		d.PrintPage(0, "$nb", "")
-		d.Println("The checker went into panic. Check the config and run again")
-		return
-	default:
 	}
 
 	if len(dm.Issues) == 0 {
+		d.PrintPage(0, "$nb", "")
 		d.CurrentContainer().Print("All files matched!")
 		return
 	}
@@ -167,9 +150,11 @@ func (dm *DiffModule) Display(d *display.Display) {
 	currentRow := 0
 	currentCol := 0
 
+	cMaxRow, cMaxCol := utils.ComputeBestArea(len(dm.results))
+
 	for _, result := range dm.results {
-		utils.Log(result.filename)
-		if currentRow >= MaxRow && currentCol < MaxCol {
+		// utils.Log(result.filename)
+		if currentRow >= cMaxRow && currentCol < cMaxCol {
 			currentRow = 0
 			currentCol++
 		}
@@ -322,7 +307,7 @@ func (dm *DiffModule) Reset() {
 	dm.results = nil
 	dm.matchCount = 0
 	dm.totalFiles = 0
-	dm.status = FakeRunning
+	dm.status = Queued
 }
 
 func (dm *DiffModule) Score() int {
@@ -343,10 +328,10 @@ func generateFormattedOutput(diffs []diffmatchpatch.Diff) FormattedOutput {
 		switch diff.Type {
 		case diffmatchpatch.DiffInsert:
 			outText += fmt.Sprintf("\033[32m%s\033[0m", diff.Text)
-			refText += strings.Repeat(" ", len(diff.Text))
+			// refText += strings.Repeat(" ", len(diff.Text))
 		case diffmatchpatch.DiffDelete:
 			refText += fmt.Sprintf("\033[31m%s\033[0m", diff.Text)
-			outText += strings.Repeat(" ", len(diff.Text))
+			// outText += strings.Repeat(" ", len(diff.Text))
 		case diffmatchpatch.DiffEqual:
 			refText += diff.Text
 			outText += diff.Text
@@ -379,6 +364,8 @@ func (ar *asyncResults) inc() {
 	ar.matches++
 }
 
+// TODO: resolve absolute path for the folders
+
 func (dm *DiffModule) compareFilesInFolders(folder1, folder2 string) int {
 	wg := sync.WaitGroup{}
 
@@ -401,11 +388,13 @@ func (dm *DiffModule) compareFilesInFolders(folder1, folder2 string) int {
 
 			text1, err := readFile(file1)
 			if err != nil {
+				utils.Err(fmt.Sprintf("failed reading file: %s", file1))
 				return // 0, fmt.Errorf("error reading file1: %w", err)
 			}
 
 			text2, err := readFile(file2)
 			if err != nil {
+				utils.Err(fmt.Sprintf("failed reading file: %s", file2))
 				return // 0, fmt.Errorf("error reading file2: %w", err)
 			}
 
@@ -419,7 +408,7 @@ func (dm *DiffModule) compareFilesInFolders(folder1, folder2 string) int {
 				points = test.Score
 			}
 
-			utils.Log("Checked" + test.DisplayName)
+			utils.Log("Checked " + test.DisplayName)
 
 			ar.add(i, FileCompareResult{
 				filename:        test.DisplayName,
