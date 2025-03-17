@@ -373,7 +373,7 @@ func (dm *DiffModule) compareFilesInFolders(folder1, folder2 string) int {
 	ar.Results = make([]FileCompareResult, len(utils.Config.Tests))
 
 	for i, test := range utils.Config.Tests {
-		utils.Log(test.DisplayName)
+		// utils.Log(test.DisplayName)
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
