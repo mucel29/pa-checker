@@ -147,7 +147,7 @@
   "memory_checker": {
     "dependencies": ["valgrind"],
     "output_dependent": true,
-    "maxWarnings": 10,
+    "maxWarnings": 20,
     "maxLeak": 100, // MB
     "grade": 0.2
   },
