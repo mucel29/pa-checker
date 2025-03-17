@@ -1,10 +1,10 @@
 {
-    "source_path": "./src",
+    "source_path": "./",
     "executable_path": "./a.out",
     "input_path": "./in",
     "output_path": "./out",
     "ref_path": "./ref",
     "forward_path": "./forward",
     "run_valgrind": false,
-    "tutorial": false
+    "tutorial": true
 }
