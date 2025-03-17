@@ -494,7 +494,7 @@ func (m *Menu) createMainMenu() {
 
 		fmt.Fprintf(tview.ANSIWriter(infoBox), "%s", summary.String())
 
-		utils.Log("redrawing")
+		// utils.Log("redrawing")
 		if m.redraw != nil {
 			m.redraw()
 			m.App.ForceDraw()
