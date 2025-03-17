@@ -40,61 +40,61 @@
       "displayName": "Test 06",
       "file": "data6",
       "args": ["$IN", "$OUT"],
-      "score": 5
+      "score": 6
     },
     {
       "displayName": "Test 07",
       "file": "data7",
       "args": ["$IN", "$OUT"],
-      "score": 5
+      "score": 6
     },
     {
       "displayName": "Test 08",
       "file": "data8",
       "args": ["$IN", "$OUT"],
-      "score": 5
+      "score": 6
     },
     {
       "displayName": "Test 09",
       "file": "data9",
       "args": ["$IN", "$OUT"],
-      "score": 5
+      "score": 6
     },
     {
       "displayName": "Test 10",
       "file": "data10",
       "args": ["$IN", "$OUT"],
-      "score": 5
+      "score": 6
     },
     {
       "displayName": "Test 11",
       "file": "data11",
       "args": ["$IN", "$OUT"],
-      "score": 5
+      "score": 6
     },
     {
       "displayName": "Test 12",
       "file": "data12",
       "args": ["$IN", "$OUT"],
-      "score": 5
+      "score": 6
     },
     {
       "displayName": "Test 13",
       "file": "data13",
       "args": ["$IN", "$OUT"],
-      "score": 5
+      "score": 6
     },
     {
       "displayName": "Test 14",
       "file": "data14",
       "args": ["$IN", "$OUT"],
-      "score": 5
+      "score": 6
     },
     {
       "displayName": "Test 15",
       "file": "data15",
       "args": ["$IN", "$OUT"],
-      "score": 5
+      "score": 6
     },
     {
       "displayName": "Test 16",
