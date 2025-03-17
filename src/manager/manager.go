@@ -2,7 +2,7 @@ package manager
 
 import (
 	"bytes"
-	checkermodules "checker-pa/src/checker-modules"
+	"checker-pa/src/checker-modules"
 	"checker-pa/src/utils"
 	"errors"
 	"fmt"

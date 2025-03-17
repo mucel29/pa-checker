@@ -104,7 +104,7 @@ func (cc *CommitChecker) Display(d *display.Display) {
 		d.Println(issue.Message)
 	}
 
-	d.Println(fmt.Sprintf("The final score is %d/%d.", cc.Score(), int32(utils.Config.CommitChecker.Grade*100)))
+	d.Println(fmt.Sprintf("The final score is %d/%d.", cc.Score(), int(utils.Config.CommitChecker.Grade*100)))
 }
 
 func (cc *CommitChecker) Dump() {
