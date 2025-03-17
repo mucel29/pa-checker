@@ -1,7 +1,7 @@
 package main
 
 import (
-	checkermodules "checker-pa/src/checker-modules"
+	"checker-pa/src/checker-modules"
 	"checker-pa/src/display"
 	"checker-pa/src/manager"
 	"checker-pa/src/menu"

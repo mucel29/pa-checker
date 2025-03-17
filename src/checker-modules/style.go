@@ -7,7 +7,6 @@ import (
 	"checker-pa/src/utils"
 	"encoding/xml"
 	"fmt"
-	"math"
 	"os"
 	"os/exec"
 	"slices"
@@ -279,9 +278,17 @@ func (sc *StyleChecker) Run() {
 // maybe based on severity and type of issues found
 // also these should be configurable in the config file
 func (sc *StyleChecker) calculateScore() {
-	baseScore := 100
-	deduction := len(sc.Issues) * 5 // Deduct 5 points per issue
-	sc.totalScore = int(math.Max(0, float64(baseScore-deduction)))
+	sc.totalScore = 0
+	slices.SortStableFunc(utils.Config.Thresholds, func(a, b utils.StyleThreshold) int {
+		return a.Under - b.Under
+	})
+
+	for _, threshold := range utils.Config.Thresholds {
+		if threshold.Under >= len(sc.Issues) {
+			sc.totalScore = threshold.Score
+			break
+		}
+	}
 }
 
 // Implementation of error formatting inspired by
