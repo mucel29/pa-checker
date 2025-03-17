@@ -6,10 +6,14 @@ import (
 	"checker-pa/src/utils"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -17,32 +21,66 @@ type Manager struct {
 	Modules []checkermodules.CheckerModule
 
 	capabilities map[string]bool
+
+	StatusPing func(caption string)
 }
 
-func (m *Manager) checkCapabilities() error {
+// TODO: re-run when relaunching checker
+// TODO: remove the capabilities map?
+
+func (m *Manager) checkCapabilities() {
 
 	// Check for Valgrind
 
 	utils.Log("Checking capabilities...")
 
-	if _, err := exec.LookPath("valgrind"); err != nil {
-		utils.Log("[ERR] valgrind")
-		return errors.New("couldn't find valgrind on your system")
+	for _, module := range m.Modules {
+		for _, dependency := range module.GetDependencies() {
+
+			if _, err := exec.LookPath(dependency); err != nil {
+				utils.Log("[ERR] " + dependency)
+				module.Disable(true)
+				continue
+				// return errors.New("couldn't find valgrind on your system")
+			}
+			if module.GetStatus() != checkermodules.DependencyFail && dependency == "valgrind" && !utils.Config.RunValgrind {
+				utils.Log("[Disabled] " + dependency)
+				module.Disable(false)
+			} else {
+				module.Enable()
+			}
+
+			utils.Log("[OK] " + dependency)
+			m.capabilities[dependency] = true
+		}
 	}
 
-	utils.Log("[OK] valgrind")
-	m.capabilities["valgrind"] = true
+	/*
+		if _, err := exec.LookPath("valgrind"); err != nil {
+			utils.Log("[ERR] valgrind")
+			//return errors.New("couldn't find valgrind on your system")
+		}
 
-	// Check for cppcheck
-	if _, err := exec.LookPath("cppcheck"); err != nil {
-		utils.Log("[ERR] cppcheck")
-		return errors.New("couldn't find cppcheck on your system")
-	}
+		utils.Log("[OK] valgrind")
+		m.capabilities["valgrind"] = true
 
-	utils.Log("[OK] cppcheck")
-	m.capabilities["cppcheck"] = true
+		// Check for cppcheck
+		if _, err := exec.LookPath("cppcheck"); err != nil {
+			utils.Log("[ERR] cppcheck")
+			//return errors.New("couldn't find cppcheck on your system")
+		}
 
-	return nil
+		utils.Log("[OK] cppcheck")
+		m.capabilities["cppcheck"] = true
+
+		return nil
+	*/
+}
+
+func abs(rel string) string {
+	absPath, _ := filepath.Abs(rel)
+
+	return absPath
 }
 
 func NewManager() (*Manager, error) {
@@ -50,20 +88,55 @@ func NewManager() (*Manager, error) {
 
 	m.capabilities = make(map[string]bool)
 
-	err := m.checkCapabilities()
+	err := m.registerModules()
 	if err != nil {
 		return nil, err
 	}
 
-	err = m.registerModules()
-	if err != nil {
-		return nil, err
+	for _, module := range m.Modules {
+		module.Reset()
 	}
+
+	m.checkCapabilities()
 
 	err = m.RetrieveConfig()
 	if err != nil {
 		return nil, err
 	}
+
+	go func() {
+
+		prevPath := abs(utils.Config.ExecutablePath)
+		prevStat, err := os.Stat(prevPath)
+		for {
+			currentPath := abs(utils.Config.ExecutablePath)
+			currentStat, err2 := os.Stat(currentPath)
+			if (err != nil && err2 == nil) || (err == nil && err2 == nil && (prevPath != currentPath || prevStat.ModTime().Before(currentStat.ModTime()))) {
+				utils.Log("file change detected!")
+				err := m.Run()
+				if err != nil {
+					utils.Err("failed manager run with error: " + err.Error())
+				}
+			}
+			/*
+				if err != nil && err2 == nil {
+					// Something happened here, maybe the file got created or idk
+
+				} else if err == nil && err2 == nil {
+					if prevPath != currentPath {
+
+					} else if prevStat.ModTime().Before(currentStat.ModTime()) {
+						// prev file is modified before current, but how can we know if they're the same
+					}
+				}
+			*/
+
+			prevPath = currentPath
+			prevStat, err = currentStat, err2
+
+			time.Sleep(2 * time.Second)
+		}
+	}()
 
 	return &m, nil
 }
@@ -164,28 +237,71 @@ func forwardBytes(bytes bytes.Buffer, filename string) error {
 	}
 	if err := os.Mkdir(absForward, 0777); err != nil {
 		if !errors.Is(err, os.ErrExist) {
+			utils.Err(fmt.Sprintf("failed creating forward directory: %s", absForward))
 			return err
 		}
 	}
 
 	f, err := os.Create(fmt.Sprintf("%s/%s", absForward, filename))
 	if err != nil {
+		utils.Err(fmt.Sprintf("failed creating forward file: %s", filename))
 		return err
 	}
 	defer f.Close()
 
 	_, err = f.Write(bytes.Bytes())
 	if err != nil {
+		utils.Err(fmt.Sprintf("failed writing to forward file: %s", filename))
 		return err
 	}
 
 	return nil
 }
 
+// TODO: what to do when a new run is triggered but the current one isn't finished?
+// TODO: should it be queued? idk how to cancel de current running routines
+
+func (m *Manager) IsRunning() bool {
+	// TODO: bug where the state is Queued instead of running, launching the run anyway
+	// quick fix: check if at least one module has already finished
+	oneReady := false
+	oneQueued := false
+	for _, module := range m.Modules {
+		utils.Log("status: " + strconv.Itoa(int(module.GetStatus())))
+		switch module.GetStatus() {
+		case checkermodules.Ready:
+			oneReady = true
+		case checkermodules.Running:
+			return true
+		case checkermodules.Queued:
+			oneQueued = true
+		default:
+		}
+	}
+
+	// utils.Log(fmt.Sprintf("%t", oneReady && oneQueued))
+
+	return oneReady && oneQueued
+}
+
 func (m *Manager) Run() error {
 
+	if m.IsRunning() {
+		return errors.New("already running")
+	}
+
+	utils.Log("launched new run")
+
+	m.checkCapabilities()
+
 	if _, err := exec.LookPath(utils.Config.ExecutablePath); err != nil {
-		return fmt.Errorf("executable not found: %s", utils.Config.ExecutablePath)
+		for _, module := range m.Modules {
+			module.Panic()
+		}
+		m.StatusPing("[ERR] " + utils.Config.ExecutablePath + " not found")
+		// This one is recoverable, don't crash
+		// return fmt.Errorf("executable not found: %s", utils.Config.ExecutablePath)
+		return nil
 	}
 
 	start := time.Now()
@@ -205,33 +321,45 @@ func (m *Manager) Run() error {
 	// Make sure output path exists
 	if err := os.Mkdir(utils.ConfigMacros["OUT_DIR"], 0777); err != nil {
 		if !errors.Is(err, os.ErrExist) {
-			return err
+			for _, module := range m.Modules {
+				module.Panic()
+			}
+			m.StatusPing("[ERR] could not create directory: " + utils.Config.OutputPath)
+			// This one is recoverable, don't crash
+			// return err
+			return nil
 		}
 	}
 
 	wg := sync.WaitGroup{}
 
 	for _, module := range m.Modules {
+		module.Reset()
 		if !module.IsOutputDependent() {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
 				defer utils.Log(module.GetName() + " done!")
-				module.Run()
+				if module.GetStatus() == checkermodules.Queued {
+					module.Run()
+				}
 			}()
 		}
 	}
 
-	for _, test := range utils.Config.Tests {
+	var ranTests int32
+
+	for i, test := range utils.Config.Tests {
 		wg.Add(1)
 		go func() {
-			defer wg.Done()
+			defer func() { wg.Done(); atomic.AddInt32(&ranTests, 1) }()
 
 			// Create Context macros
 			contextMacros := map[string]string{
 				"FILE": test.File,
 				"IN":   fmt.Sprintf("%s/%s.in", utils.ConfigMacros["IN_DIR"], test.File),
 				"OUT":  fmt.Sprintf("%s/%s.out", utils.ConfigMacros["OUT_DIR"], test.File),
+				"N":    strconv.Itoa(i),
 			}
 
 			var processedArgs []string
@@ -249,6 +377,7 @@ func (m *Manager) Run() error {
 
 				execPath, err := filepath.Abs(utils.Config.ExecutablePath)
 				if err != nil {
+					utils.Err(fmt.Sprintf("failed getting executable path: %s", xmlPath))
 					return // err
 				}
 
@@ -273,16 +402,18 @@ func (m *Manager) Run() error {
 			start = time.Now()
 
 			if err := cmd.Run(); err != nil {
-				utils.Log("Error running " + test.File)
+				utils.Err("Error running " + test.File)
 			}
 
 			// Forward stdout
 			if err := forwardBytes(stdout, fmt.Sprintf("%s.stdout", test.File)); err != nil {
+				utils.Err(fmt.Sprintf("failed forwarding stdout %s", test.File))
 				return // err
 			}
 
 			// Forward stderr
 			if err := forwardBytes(stderr, fmt.Sprintf("%s.stderr", test.File)); err != nil {
+				utils.Err(fmt.Sprintf("failed forwarding stderr %s", test.File))
 				return // err
 			}
 
@@ -291,7 +422,41 @@ func (m *Manager) Run() error {
 		}()
 	}
 
+	updateDisplay := true
+
+	const (
+		barLength = 20
+	)
+
+	go func() {
+		// Func available only in interactive mode
+		if m.StatusPing == nil {
+			return
+		}
+		for updateDisplay {
+			builder := strings.Builder{}
+			builder.WriteString("[")
+			filled := int(math.Ceil(float64(ranTests) / float64(len(utils.Config.Tests)) * barLength))
+			for i := 0; i < filled; i++ {
+				builder.WriteString("#")
+			}
+			for i := filled; i < barLength; i++ {
+				builder.WriteString(".")
+			}
+			builder.WriteString("]")
+
+			m.StatusPing(builder.String())
+			time.Sleep(100 * time.Millisecond)
+		}
+	}()
+
 	wg.Wait()
+	m.Check()
+	updateDisplay = false
+	utils.Log("finished updating display")
+	if m.StatusPing != nil {
+		m.StatusPing("")
+	}
 	return nil
 }
 
@@ -301,10 +466,12 @@ func (m *Manager) Check() {
 	for _, module := range m.Modules {
 		if module.IsOutputDependent() {
 			wg.Add(1)
-			utils.Log("RUNNING " + module.GetName())
+			utils.Log("Running " + module.GetName())
 			go func() {
 				defer wg.Done()
-				module.Run()
+				if module.GetStatus() == checkermodules.Queued {
+					module.Run()
+				}
 			}()
 		}
 	}

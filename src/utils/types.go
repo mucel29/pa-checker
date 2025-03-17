@@ -12,28 +12,33 @@ type Test struct {
 }
 
 type RefChecker struct {
-	OutputDependent bool   `json:"output_dependent"`
-	InputPath       string `json:"input_after"`
-	Tests           []Test `json:"tests"`
+	OutputDependent bool    `json:"output_dependent"`
+	Grade           float32 `json:"grade"`
 }
 
 type CommitChecker struct {
-	OutputDependent bool `json:"output_dependent"`
-	MinCommits      int  `json:"minCommits"`
-	UseFormat       bool `json:"useFormat"`
-	Score           int  `json:"score"`
+	Dependencies    []string `json:"dependencies"`
+	OutputDependent bool     `json:"output_dependent"`
+	MinCommits      int      `json:"minCommits"`
+	UseFormat       bool     `json:"useFormat"`
+	Score           int      `json:"score"`
+	Grade           float32  `json:"grade"`
 }
 
 type MemoryChecker struct {
-	OutputDependent bool `json:"output_dependent"`
-	MaxWarning      int  `json:"maxWarning"`
-	MaxLeak         int  `json:"maxLeak"`
-	Score           int  `json:"score"`
+	Dependencies    []string `json:"dependencies"`
+	OutputDependent bool     `json:"output_dependent"`
+	MaxWarning      int      `json:"maxWarning"`
+	MaxLeak         int      `json:"maxLeak"`
+	Score           int      `json:"score"`
+	Grade           float32  `json:"grade"`
 }
 
 type StyleChecker struct {
-	OutputDependent bool `json:"output_dependent"`
-	ScoreThreshold  int  `json:"score_threshold"`
+	Dependencies    []string `json:"dependencies"`
+	OutputDependent bool     `json:"output_dependent"`
+	ScoreThreshold  int      `json:"score_threshold"`
+	Grade           float32  `json:"grade"`
 	Thresholds      []struct {
 		Under int `json:"under"`
 		Score int `json:"score"`
@@ -41,9 +46,10 @@ type StyleChecker struct {
 }
 
 type ModuleConfig struct {
-	TempPath       string            `json:"temp_path"`
-	RunValgrind    bool              `json:"run_valgrind"`
-	Macros         map[string]string `json:"macros"`
+	TempPath string            `json:"temp_path"`
+	Macros   map[string]string `json:"macros"`
+	Tests    []Test            `json:"tests"`
+
 	*RefChecker    `json:"ref_checker"`
 	*CommitChecker `json:"commit_checker"`
 	*MemoryChecker `json:"memory_checker"`
@@ -57,6 +63,8 @@ type UserConfig struct {
 	OutputPath     string `json:"output_path"`
 	RefPath        string `json:"ref_path"`
 	ForwardPath    string `json:"forward_path"`
+	RunValgrind    bool   `json:"run_valgrind"`
+	Tutorial       bool   `json:"tutorial"`
 }
 
 type CppcheckResults struct {

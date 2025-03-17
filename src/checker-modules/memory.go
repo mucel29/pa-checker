@@ -140,25 +140,56 @@ func (tmr *TestMemoryResult) String() string {
 }
 
 type MemoryChecker struct {
-	score int
-	tests []TestMemoryResult
+	score  int
+	tests  []TestMemoryResult
+	status ModuleStatus
 }
 
 func (*MemoryChecker) GetName() string {
-	return "memory_checker"
+	return "MEMORY"
 }
 
 func (*MemoryChecker) IsOutputDependent() bool {
 	return utils.Config.MemoryChecker.OutputDependent
 }
 
+func (*MemoryChecker) GetDependencies() []string { return utils.Config.MemoryChecker.Dependencies }
+
+func (mc *MemoryChecker) Disable(fail bool) {
+	if fail {
+		mc.status = DependencyFail
+	} else {
+		mc.status = Disabled
+	}
+}
+
+func (mc *MemoryChecker) Enable() {
+	mc.status = Queued
+}
+
+func (mc *MemoryChecker) GetStatus() ModuleStatus {
+	return mc.status
+}
+
+func (mc *MemoryChecker) GetResult() string {
+	return fmt.Sprintf("%d leaks", mc.getTotalIssues())
+}
+
 func (mc *MemoryChecker) Reset() {
+	if mc.status == Disabled || mc.status == DependencyFail {
+		return
+	}
 	mc.tests = nil
 	mc.score = 0
+	mc.status = Queued
 }
 
 func (mc *MemoryChecker) Score() int {
-	return mc.score
+	return int(float32(mc.score) * utils.Config.MemoryChecker.Grade)
+}
+
+func (mc *MemoryChecker) Panic() {
+	mc.status = Panic
 }
 
 func (mc *MemoryChecker) getTotalIssues() int {
@@ -186,6 +217,11 @@ func (mc *MemoryChecker) getStatus() TestStatus {
 func (mc *MemoryChecker) Display(d *display.Display) {
 	d.CurrentContainer().Title("Memory checker - "+strconv.Itoa(int(mc.score)), tview.AlignLeft)
 
+	if statusStr := StatusStr(mc); statusStr != "" {
+		d.PrintPage(0, "$nb", statusStr)
+		return
+	}
+
 	if mc.getStatus() == OK {
 		// Disable border
 		d.PrintPage(0, "$nb", "")
@@ -201,6 +237,8 @@ func (mc *MemoryChecker) Display(d *display.Display) {
 
 	currentRow := 0
 	currentCol := 0
+
+	MaxRow, MaxCol := utils.ComputeBestArea(len(mc.tests))
 
 	for _, test := range mc.tests {
 		if currentRow >= MaxRow && currentCol < MaxCol {
@@ -267,6 +305,11 @@ func (mc *MemoryChecker) Display(d *display.Display) {
 func (mc *MemoryChecker) Dump() {
 	fmt.Printf("===== %s - %d =====\n\n", "Memory checker", mc.score)
 
+	if mc.status != Ready {
+		fmt.Println("This module is disabled.")
+		return
+	}
+
 	if mc.getStatus() == OK {
 		fmt.Println("No issues found! Great job :)!")
 	}
@@ -284,6 +327,9 @@ func (mc *MemoryChecker) Dump() {
 }
 
 func (mc *MemoryChecker) Run() {
+	mc.status = Running
+	defer func() { mc.status = Ready }()
+
 	mc.score = utils.Config.MemoryChecker.Score
 
 	// Preallocate to keep order and avoid conflicts in the goroutines
@@ -301,12 +347,14 @@ func (mc *MemoryChecker) Run() {
 
 			absTempPath, err := filepath.Abs(utils.Config.TempPath)
 			if err != nil {
-				panic(err)
+				utils.Err("Failed to get absolute temp")
+				return
 			}
 
 			data, err := os.ReadFile(fmt.Sprintf("%s/%s.xml", absTempPath, test.File))
 			if err != nil {
-				panic(err)
+				utils.Err(fmt.Sprintf("Failed to read file: %s.xml", test.File))
+				return
 			}
 
 			testResult := TestMemoryResult{testName: test.DisplayName}
