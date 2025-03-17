@@ -229,5 +229,5 @@ func (cc *CommitChecker) Run() {
 		return
 	}
 
-	cc.score = cc.score - len(cc.Issues)*deduction
+	cc.score -= len(cc.Issues) * deduction
 }

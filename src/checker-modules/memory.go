@@ -409,5 +409,5 @@ func (mc *MemoryChecker) Run() {
 		return
 	}
 
-	mc.score = mc.score - (mc.getTotalIssues() * deduction)
+	mc.score -= (mc.getTotalIssues() * deduction)
 }
