@@ -27,7 +27,7 @@ type CommitChecker struct {
 type MemoryChecker struct {
 	Dependencies    []string `json:"dependencies"`
 	OutputDependent bool     `json:"output_dependent"`
-	MaxWarning      int      `json:"maxWarning"`
+	MaxWarning      int      `json:"maxWarnings"`
 	MaxLeak         int      `json:"maxLeak"`
 	Grade           float32  `json:"grade"`
 }
