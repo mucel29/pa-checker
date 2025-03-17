@@ -153,20 +153,16 @@
     "grade": 0.2,
     "thresholds": [
       {
-        "under": 5,
-        "score": 10
+        "under": 3,
+        "score": 100
       },
       {
-        "under": 15,
-        "score": 8
+        "under": 10,
+        "score": 75
       },
       {
-        "under": 45,
-        "score": 4
-      },
-      {
-        "under": 70,
-        "score": 2
+        "under": 20,
+        "score": 50
       }
     ]
   }
