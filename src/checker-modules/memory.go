@@ -401,7 +401,7 @@ func (mc *MemoryChecker) Run() {
 	wg.Wait()
 
 	deduction := 100 / utils.Config.MemoryChecker.MaxWarning
-	if mc.getTotalIssues() >= 5 {
+	if mc.getTotalIssues() >= utils.Config.MemoryChecker.MaxWarning {
 		mc.score = 0
 		return
 	}

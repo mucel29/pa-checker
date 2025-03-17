@@ -32,15 +32,16 @@ type MemoryChecker struct {
 	Grade           float32  `json:"grade"`
 }
 
+type StyleThreshold struct {
+	Under int `json:"under"`
+	Score int `json:"score"`
+}
 type StyleChecker struct {
-	Dependencies    []string `json:"dependencies"`
-	OutputDependent bool     `json:"output_dependent"`
-	ScoreThreshold  int      `json:"score_threshold"`
-	Grade           float32  `json:"grade"`
-	Thresholds      []struct {
-		Under int `json:"under"`
-		Score int `json:"score"`
-	} `json:"thresholds"`
+	Dependencies    []string         `json:"dependencies"`
+	OutputDependent bool             `json:"output_dependent"`
+	ScoreThreshold  int              `json:"score_threshold"`
+	Grade           float32          `json:"grade"`
+	Thresholds      []StyleThreshold `json:"thresholds"`
 }
 
 type ModuleConfig struct {

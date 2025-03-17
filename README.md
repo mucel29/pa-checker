@@ -2,7 +2,7 @@
 
 ## License
 
-This project is using the `LICENSE PENDING` License.
+This project is using the `ISC` License.
 
 ## Contributors
 
@@ -172,8 +172,8 @@ Inside `config.json` or the `Options` tab you can modify the following:
 
 <br>
 
-5.  I previously had a score of 100 on a test and although I didn't modify any of the code responsible for the test, my score is now lower.
-> The memory and git modules run on your entire code. If you recently added code that produces leaks, for example, this will affect the score on all tests. make sure to correct all memory and git issues before you submit your program for a specific task.
+5. I previously had a score of 100 on a test and although I didn't modify any of the code responsible for the test, my score is now lower.
+> The memory and git modules run on your entire code. If you recently added code that produces leaks, for example, this will affect the score on all tests. Make sure to correct all memory and git issues before you submit your program for a specific task.
 
 ---
 
