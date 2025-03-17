@@ -17,6 +17,22 @@ This project is using the `LICENSE PENDING` License.
 * `cppcheck`
 * `git`
 
+### Quick install
+
+```bash
+# Update the package repositories
+sudo apt update
+
+# Install valgrind
+sudo apt install valgrind
+
+# Install cppcheck
+sudo apt install cppcheck
+
+# Install git (if not already installed)
+sudo apt install git
+```
+
 ## Features
 
 - [x] Parallel test running
@@ -73,7 +89,7 @@ This project is using the `LICENSE PENDING` License.
 
 ### Configuration
 
-Inside `config.json` or the `Options` tab you can modify the following options:
+Inside `config.json` or the `Options` tab you can modify the following:
 
 * `Executable Path` - the executable that will be used to run the tests
 * `Source Path` - the project root directory
@@ -84,7 +100,88 @@ Inside `config.json` or the `Options` tab you can modify the following options:
 * `Valgrind` - whether to run the tests using valgrind or not _(disable for faster iteration)_
 * `Tutorial` - display the tutorial again _(disabled afterward)_
 
+### Interface screenshots
+<div style="text-align: center;">
+
+![refs example](./res/doc/ref_example.png)
+<br>
+`Refs tab example`
+
+</div>
+
+<br>
+
+
+<div style="text-align: center;">
+
+![diff example](./res/doc/diff_example.png)
+<br>
+`Diff visualization`
+
+</div>
+
+<br>
+
+<div style="text-align: center;">
+
+![options example](./res/doc/style_example.png)
+<br>
+`Style tab example`
+
+</div>
+
+<br>
+
+<div style="text-align: center;">
+
+![options example](./res/doc/options_example.png)
+<br>
+`Options tab example`
+
+</div>
+
+
+---
+
+<br>
+
+### FAQ
+
+1. What does the live reload feature do?
+> The live reload feature watches for any changes made to the provided executable and triggers a new test run when it's modified.
+
+<br>
+
+2. One or more modules went into panic! What do I do now?
+> One or more modules might go into panic from various reasons. The common ones are:
+> * The executable was deleted or an invalid path was provided
+> * The checker doesn't have read / write access to one or more of the provided paths
+> * The config was set up incorrectly
+> 
+> Simply look for any of these issues. After you're sure that the problem is fixed, just relaunch the checker or trigger a new run by recompiling your code. _(or by pressing `~`)_
+
+<br>
+
+3. I solved the whole assignment but my score is not 100! Where did my points go!?
+> Please check that all modules are enabled first. _(no `DISABLED` status)_
+
+<br>
+
+4. All the modules are enabled but my score is still not 100!
+> Probably there are still issues to be ironed out, make sure that each module page displays no errors.
+
+<br>
+
+5.  I previously had a score of 100 on a test and although I didn't modify any of the code responsible for the test, my score is now lower.
+> The memory and git modules run on your entire code. If you recently added code that produces leaks, for example, this will affect the score on all tests. make sure to correct all memory and git issues before you submit your program for a specific task.
+
+---
+
+<br>
+
 ## Contributing
+
+> This project is still a work-in-progress and any contributions are welcome!
 
 ### Project Structure
 

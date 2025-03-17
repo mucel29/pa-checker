@@ -9,10 +9,10 @@ import (
 	"flag"
 )
 
-//go:embed res/module_config.json
+//go:embed res/config/module_config.json
 var moduleConfigStr string
 
-//go:embed res/user_config.json
+//go:embed res/config/user_config.json
 var defaultUserConfigStr string
 
 var useInteractive bool
