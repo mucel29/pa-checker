@@ -1,5 +1,3 @@
-// EXAMPLE MODULE CONFIG --- CHANGE LATER
-
 {
   "temp_path": "./.checker_temp",
   // Please avoid cyclic macros
@@ -146,7 +144,7 @@
   "memory_checker": {
     "dependencies": ["valgrind"],
     "output_dependent": true,
-    "maxWarnings": 10,
+    "maxWarnings": 20,
     "maxLeak": 100, // MB
     "grade": 0.2
   },
@@ -157,20 +155,16 @@
     "grade": 0.2,
     "thresholds": [
       {
-        "under": 5,
-        "score": 10
+        "under": 3,
+        "score": 100
       },
       {
-        "under": 15,
-        "score": 8
+        "under": 10,
+        "score": 75
       },
       {
-        "under": 45,
-        "score": 4
-      },
-      {
-        "under": 70,
-        "score": 2
+        "under": 20,
+        "score": 50
       }
     ]
   }
