@@ -330,7 +330,7 @@ Inside a full window press [yellow]ESC[-] to go back
 
 To close the program press [yellow]ESC[-] inside the main page or [yellow]Ctrl+C[-]
 
-To close this tutorial press [yellow]Any key[-]
+To close this tutorial press [yellow]any key[-]
 
 You can enable this back in the config
 `)
