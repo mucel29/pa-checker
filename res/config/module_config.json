@@ -4,131 +4,130 @@
   "temp_path": "./.checker_temp",
   // Please avoid cyclic macros
   "macros": {
-    "MACRO": "test123",
     "TEST_DIR": "$SRC_DIR/teste",
-    "TEST_TEST_DIR": "$TEST_DIR/teste2"
+    "DIFF_1": "$FILE_file1.in",
+    "DIFF_2": "$FILE_file2.in"
   },
 
   "tests": [
     {
-      "displayName": "data1",
+      "displayName": "Test 01",
       "file": "data1",
-      "args": ["$IN", "$OUT"],
+      "args": ["task1", "Ana", "-m", "-n=100", "--file=$TEST_DIR/dir2/in1.txt", "--out=$OUT"],
       "score": 4
     },
     {
-      "displayName": "data2",
+      "displayName": "Test 02",
       "file": "data2",
-      "args": ["$IN", "$OUT"],
+      "args": ["task1", "Ana", "are", "mere", "--file=$TEST_DIR/dir1/dir4/in2.txt", "--out=$OUT"],
       "score": 4
     },
     {
-      "displayName": "data3",
+      "displayName": "Test 03",
       "file": "data3",
-      "args": ["$IN", "$OUT"],
+      "args": ["task1", "argument1", "argument2", "-ab", "--file=$TEST_DIR/dir1/in3.txt", "--out=$OUT"],
       "score": 4
     },
     {
-      "displayName": "data4",
+      "displayName": "Test 04",
       "file": "data4",
-      "args": ["$IN", "$OUT"],
-
+      "args": ["task1", "argument2", "-bc", "-d", "--file=$TEST_DIR/dir1/dir4/in4.txt", "--out=$OUT"],
       "score": 4
     },
     {
-      "displayName": "data5",
+      "displayName": "Test 05",
       "file": "data5",
-      "args": ["$IN", "$OUT"],
+      "args": ["task1", "argument", "--arg", "-b", "100", "--file=$TEST_DIR/in5.txt", "--out=$OUT"],
       "score": 4
     },
     {
-      "displayName": "data6",
+      "displayName": "Test 06",
       "file": "data6",
-      "args": ["$IN", "$OUT"],
-      "score": 5
+      "args": ["task2", "$TEST_DIR", "--out=$OUT"],
+      "score": 6
     },
     {
-      "displayName": "data7",
+      "displayName": "Test 07",
       "file": "data7",
-      "args": ["$IN", "$OUT"],
-      "score": 5
+      "args": ["task2", "$TEST_DIR", "-r", "--out=$OUT"],
+      "score": 6
     },
     {
-      "displayName": "data8",
+      "displayName": "Test 08",
       "file": "data8",
-      "args": ["$IN", "$OUT"],
-      "score": 5
+      "args": ["task2", "$TEST_DIR", "-h", "--out=$OUT"],
+      "score": 6
     },
     {
-      "displayName": "data9",
+      "displayName": "Test 09",
       "file": "data9",
-      "args": ["$IN", "$OUT"],
-      "score": 5
+      "args": ["task2", "$TEST_DIR", "-rh", "--out=$OUT"],
+      "score": 6
     },
     {
-      "displayName": "data10",
+      "displayName": "Test 10",
       "file": "data10",
-      "args": ["$IN", "$OUT"],
-      "score": 5
+      "args": ["task2", "$TEST_DIR/dir1", "--out=$OUT"],
+      "score": 6
     },
     {
-      "displayName": "data11",
+      "displayName": "Test 11",
       "file": "data11",
-      "args": ["$IN", "$OUT"],
-      "score": 5
+      "args": ["task3", "$TEST_DIR/dir1/dir4/dir6", "$TEST_DIR/dir2", "--out=$OUT"],
+      "score": 6
     },
     {
-      "displayName": "data12",
+      "displayName": "Test 12",
       "file": "data12",
-      "args": ["$IN", "$OUT"],
-      "score": 5
+      "args": ["task3", "$TEST_DIR/dir1/dir4/dir7", "$TEST_DIR/dir1/dir4/dir8", "--out=$OUT"],
+      "score": 6
     },
     {
-      "displayName": "data13",
+      "displayName": "Test 13",
       "file": "data13",
-      "args": ["$IN", "$OUT"],
-      "score": 5
+      "args": ["task3", "$TEST_DIR/dir3/dir9", "$TEST_DIR/dir3", "--out=$OUT"],
+      "score": 6
     },
     {
-      "displayName": "data14",
+      "displayName": "Test 14",
       "file": "data14",
-      "args": ["$IN", "$OUT"],
-      "score": 5
+      "args": ["task3", "$TEST_DIR/dir1", "$TEST_DIR/dir1/dir4/dir6", "--out=$OUT"],
+      "score": 6
     },
     {
-      "displayName": "data15",
+      "displayName": "Test 15",
       "file": "data15",
-      "args": ["$IN", "$OUT"],
-      "score": 5
+      "args": ["task3", "$TEST_DIR/dir1/dir4", "$TEST_DIR/dir3/dir9", "--out=$OUT"],
+      "score": 6
     },
     {
-      "displayName": "data16",
+      "displayName": "Test 16",
       "file": "data16",
-      "args": ["$IN", "$OUT"],
+      "args": ["task4", "$TEST_DIR/dir1/dir8/$DIFF_1", "$TEST_DIR/dir1/dir8/$DIFF_2", "--out=$OUT"],
       "score": 4
     },
     {
-      "displayName": "data17",
+      "displayName": "Test 17",
       "file": "data17",
-      "args": ["$IN", "$OUT"],
+      "args": ["task4", "$TEST_DIR/dir1/dir8/dir10/$DIFF_1", "$TEST_DIR/dir1/dir8/dir10/$DIFF_2", "--out=$OUT"],
       "score": 4
     },
     {
-      "displayName": "data18",
+      "displayName": "Test 18",
       "file": "data18",
-      "args": ["$IN", "$OUT"],
+      "args": ["task4", "$TEST_DIR/dir1/dir4/dir6/dir11/$DIFF_1", "$TEST_DIR/dir1/dir4/dir6/dir11/$DIFF_2", "--out=$OUT"],
       "score": 4
     },
     {
-      "displayName": "data19",
+      "displayName": "Test 19",
       "file": "data19",
-      "args": ["$IN", "$OUT"],
+      "args": ["task4", "$TEST_DIR/dir3/$DIFF_1", "$TEST_DIR/dir3/$DIFF_2", "--out=$OUT"],
       "score": 4
     },
     {
-      "displayName": "data20",
+      "displayName": "Test 20",
       "file": "data20",
-      "args": ["$IN", "$OUT"],
+      "args": ["task4", "$TEST_DIR/dir3/dir9/$DIFF_1", "$TEST_DIR/dir3/dir9/$DIFF_2", "--out=$OUT"],
       "score": 4
     }
   ],
@@ -147,7 +146,7 @@
   "memory_checker": {
     "dependencies": ["valgrind"],
     "output_dependent": true,
-    "maxWarnings": 20,
+    "maxWarnings": 10,
     "maxLeak": 100, // MB
     "grade": 0.2
   },
@@ -159,19 +158,19 @@
     "thresholds": [
       {
         "under": 5,
-        "score": 100
+        "score": 10
       },
       {
         "under": 15,
-        "score": 80
+        "score": 8
       },
       {
         "under": 45,
-        "score": 40
+        "score": 4
       },
       {
         "under": 70,
-        "score": 20
+        "score": 2
       }
     ]
   }
