@@ -159,19 +159,19 @@
     "thresholds": [
       {
         "under": 5,
-        "score": 10
+        "score": 100
       },
       {
         "under": 15,
-        "score": 8
+        "score": 80
       },
       {
         "under": 45,
-        "score": 4
+        "score": 40
       },
       {
         "under": 70,
-        "score": 2
+        "score": 20
       }
     ]
   }
