@@ -21,7 +21,6 @@ type CommitChecker struct {
 	OutputDependent bool     `json:"output_dependent"`
 	MinCommits      int      `json:"minCommits"`
 	UseFormat       bool     `json:"useFormat"`
-	Score           int      `json:"score"`
 	Grade           float32  `json:"grade"`
 }
 
@@ -30,7 +29,6 @@ type MemoryChecker struct {
 	OutputDependent bool     `json:"output_dependent"`
 	MaxWarning      int      `json:"maxWarning"`
 	MaxLeak         int      `json:"maxLeak"`
-	Score           int      `json:"score"`
 	Grade           float32  `json:"grade"`
 }
 

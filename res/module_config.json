@@ -140,9 +140,8 @@
   "commit_checker": {
     "dependencies": ["git"],
     "output_dependent": false,
-    "minCommits": 5,
+    "minCommits": 3,
     "useFormat": true,
-    "score": 10,
     "grade": 0.1
   },
   "memory_checker": {
@@ -150,7 +149,6 @@
     "output_dependent": true,
     "maxWarnings": 10,
     "maxLeak": 100, // MB
-    "score": 5,
     "grade": 0.2
   },
   "style_checker": {

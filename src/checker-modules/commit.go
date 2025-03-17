@@ -20,7 +20,7 @@ type CommitChecker struct {
 	status  ModuleStatus
 }
 
-var ErrNotFound = errors.New("The checker couldn't find git on your system. Are you sure it's installed?")
+var ErrNotFound = errors.New(" The checker couldn't find git on your system. Are you sure it's installed?")
 
 func (*CommitChecker) GetName() string {
 	return "COMMIT"
@@ -73,7 +73,7 @@ func (cc *CommitChecker) Score() int {
 
 func (cc *CommitChecker) Display(d *display.Display) {
 
-	d.CurrentContainer().Title("Commit checker - "+strconv.Itoa(cc.score), tview.AlignLeft)
+	d.CurrentContainer().Title("Commit checker - "+strconv.Itoa(cc.Score()), tview.AlignLeft)
 
 	// Disable border
 	d.PrintPage(0, "$nb", "")
@@ -83,11 +83,9 @@ func (cc *CommitChecker) Display(d *display.Display) {
 		return
 	}
 
-	points := utils.Config.CommitChecker.Score
-
 	if len(cc.Issues) == 0 {
 		d.Println("No issues found!")
-		d.Println(fmt.Sprintf("Got %d/%d points! Congrats :)", points, points))
+		d.Println(fmt.Sprintf("Got %d/%d points! Congrats :)", cc.Score(), cc.Score()))
 		return
 	}
 
@@ -106,11 +104,11 @@ func (cc *CommitChecker) Display(d *display.Display) {
 		d.Println(issue.Message)
 	}
 
-	d.Println(fmt.Sprintf("The final score is %d/%d.", cc.score, points))
+	d.Println(fmt.Sprintf("The final score is %d/%d.", cc.Score(), int32(utils.Config.CommitChecker.Grade*100)))
 }
 
 func (cc *CommitChecker) Dump() {
-	fmt.Printf("===== Commit checker - %d =====\n\n", cc.score)
+	fmt.Printf("===== Commit checker - %d =====\n\n", cc.Score())
 
 	if cc.status != Ready {
 		fmt.Println("This module is disabled.")
@@ -155,7 +153,7 @@ func (cc *CommitChecker) Run() {
 		// if the student didn't "git init" before, this will give an ambiguous error
 		_, newErr := os.Stat(".git")
 		if errors.Is(newErr, os.ErrNotExist) {
-			errMsg := "Couldn't find any commits, are you sure you ran 'git init' firstly?"
+			errMsg := "Couldn't find any commits, are you sure you ran 'git init' first?"
 			issue := ModuleIssue{Message: errMsg, Critical: true}
 			cc.Issues = append(cc.Issues, issue)
 			return
@@ -201,8 +199,6 @@ func (cc *CommitChecker) Run() {
 			err := checkCommits(splitLine[1])
 			if err != nil {
 				errMsg := "Bad commit detected: " + err.Error() + " the commit was \"" + splitLine[1] + "\"\n"
-
-				//TODO: modify deduction
 				issue := ModuleIssue{Message: errMsg}
 				cc.Issues = append(cc.Issues, issue)
 				continue
@@ -213,8 +209,7 @@ func (cc *CommitChecker) Run() {
 	}
 
 	minCommits := utils.Config.CommitChecker.MinCommits
-	points := utils.Config.CommitChecker.Score
-	cc.score = points
+	cc.score = 100
 
 	if minCommits > len(cc.commits) {
 		pointsToDeduct := 1
@@ -223,11 +218,16 @@ func (cc *CommitChecker) Run() {
 		cc.Issues = append(cc.Issues, ModuleIssue{Message: issueMsg})
 	}
 
-	deduction := 2
+	deduction := 100 / utils.Config.CommitChecker.MinCommits
 
-	if points-len(cc.Issues)*deduction <= 0 {
-		cc.score = 0
-	} else {
-		cc.score -= len(cc.Issues) * deduction
+	if len(cc.Issues) == 0 {
+		return
 	}
+
+	if len(cc.Issues) > 3 {
+		cc.score = 0
+		return
+	}
+
+	cc.score = cc.score - len(cc.Issues)*deduction
 }

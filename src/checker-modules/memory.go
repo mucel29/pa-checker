@@ -215,7 +215,7 @@ func (mc *MemoryChecker) getStatus() TestStatus {
 }
 
 func (mc *MemoryChecker) Display(d *display.Display) {
-	d.CurrentContainer().Title("Memory checker - "+strconv.Itoa(int(mc.score)), tview.AlignLeft)
+	d.CurrentContainer().Title("Memory checker - "+strconv.Itoa(int(mc.Score())), tview.AlignLeft)
 
 	if statusStr := StatusStr(mc); statusStr != "" {
 		d.PrintPage(0, "$nb", statusStr)
@@ -227,7 +227,7 @@ func (mc *MemoryChecker) Display(d *display.Display) {
 		d.PrintPage(0, "$nb", "")
 		d.Println(
 			fmt.Sprintf("No issues found! Great job you got %d/%d :)!",
-				mc.score, mc.score))
+				mc.Score(), mc.Score()))
 		return
 	}
 
@@ -303,7 +303,7 @@ func (mc *MemoryChecker) Display(d *display.Display) {
 }
 
 func (mc *MemoryChecker) Dump() {
-	fmt.Printf("===== %s - %d =====\n\n", "Memory checker", mc.score)
+	fmt.Printf("===== %s - %d =====\n\n", "Memory checker", mc.Score())
 
 	if mc.status != Ready {
 		fmt.Println("This module is disabled.")
@@ -330,7 +330,7 @@ func (mc *MemoryChecker) Run() {
 	mc.status = Running
 	defer func() { mc.status = Ready }()
 
-	mc.score = utils.Config.MemoryChecker.Score
+	mc.score = 100
 
 	// Preallocate to keep order and avoid conflicts in the goroutines
 	mc.tests = make([]TestMemoryResult, len(utils.Config.Tests))
@@ -400,11 +400,14 @@ func (mc *MemoryChecker) Run() {
 
 	wg.Wait()
 
-	deduction := 2
-	if mc.score-mc.getTotalIssues()*deduction <= 0 {
+	deduction := 100 / utils.Config.MemoryChecker.MaxWarning
+	if mc.getTotalIssues() >= 5 {
 		mc.score = 0
-	} else {
-		mc.score -= mc.getTotalIssues() * deduction
+		return
+	}
+	if mc.getTotalIssues() == 0 {
+		return
 	}
 
+	mc.score = mc.score - (mc.getTotalIssues() * deduction)
 }
