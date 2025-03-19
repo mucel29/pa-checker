@@ -25,8 +25,26 @@ type Manager struct {
 	StatusPing func(caption string)
 }
 
-// TODO: re-run when relaunching checker
-// TODO: remove the capabilities map?
+func (m *Manager) BasicSummary(caption string) {
+	summary := strings.Builder{}
+
+	summary.WriteString("\n===== Summary =====\n")
+	if caption != "" {
+		summary.WriteString("\n" + caption + "\n\n")
+	}
+
+	for _, module := range m.Modules {
+		if module.GetStatus() != checkermodules.Ready {
+			summary.WriteString(fmt.Sprintf("%-7s - %-8s\n", module.GetName(), module.GetStatus().String()))
+		} else {
+			summary.WriteString(fmt.Sprintf("%-7s - %-8s\n", module.GetName(), module.GetResult()))
+		}
+	}
+
+	summary.WriteString(fmt.Sprintf("\nScore: %d\n", m.TotalScore()))
+
+	fmt.Println(summary.String())
+}
 
 func (m *Manager) checkCapabilities() {
 
@@ -298,10 +316,16 @@ func (m *Manager) Run() error {
 		for _, module := range m.Modules {
 			module.Panic()
 		}
-		m.StatusPing("[ERR] " + utils.Config.ExecutablePath + " not found")
-		// This one is recoverable, don't crash
-		// return fmt.Errorf("executable not found: %s", utils.Config.ExecutablePath)
-		return nil
+		// Return nil only when in interactive mode
+
+		if m.StatusPing != nil {
+			m.StatusPing("[ERR] " + utils.Config.ExecutablePath + " not found")
+			// This one is recoverable, don't crash
+			return nil
+		}
+		
+		m.BasicSummary("[ERR] " + utils.Config.ExecutablePath + " not found")
+		return errors.New("executable not found: " + utils.Config.ExecutablePath)
 	}
 
 	start := time.Now()
@@ -324,10 +348,17 @@ func (m *Manager) Run() error {
 			for _, module := range m.Modules {
 				module.Panic()
 			}
-			m.StatusPing("[ERR] could not create directory: " + utils.Config.OutputPath)
-			// This one is recoverable, don't crash
-			// return err
-			return nil
+
+			// Return nil only when in interactive mode
+
+			if m.StatusPing != nil {
+				m.StatusPing("[ERR] could not create directory: " + utils.Config.OutputPath)
+				// This one is recoverable, don't crash
+				return nil
+			}
+
+			m.BasicSummary("[ERR] could not create directory: " + utils.Config.OutputPath)
+			return errors.New("could not create directory: " + utils.Config.OutputPath)
 		}
 	}
 

@@ -2,6 +2,7 @@ package checkermodules
 
 import (
 	"checker-pa/src/display"
+	"github.com/fatih/color"
 	"strconv"
 	"strings"
 )
@@ -39,17 +40,17 @@ const (
 func (ms ModuleStatus) String() string {
 	switch ms {
 	case Ready:
-		return "[green]Ready[-]"
+		return color.New(color.FgGreen).Sprint("READY")
 	case Queued:
-		return "[yellow]Queued[-]"
+		return color.New(color.FgYellow).Sprint("QUEUED")
 	case Running:
-		return "[yellow]Running[-]"
+		return color.New(color.FgYellow).Sprint("RUNNING")
 	case Disabled:
-		return "[gray]Disabled[-]"
+		return color.New(color.FgBlack).Add(color.BgWhite).Sprint("DISABLED")
 	case DependencyFail:
-		return "[red]ERR[-]"
+		return color.New(color.FgRed).Sprint("ERR")
 	case Panic:
-		return "[red]PANIC![-]"
+		return color.New(color.FgHiRed).Sprint("PANIC!")
 	default:
 		return "UNKNOWN"
 	}
