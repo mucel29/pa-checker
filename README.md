@@ -61,7 +61,7 @@ sudo apt install git
   
 - [x] OS Compatibility
   - [x] `Linux / WSL` - full support
-  - [x] `OSX` - full support _(at least from the tests)_
+  - [ ] `OSX` - partial support _(no backend for the memory module)_
   - [ ] `Windows` - partial support _(no backend for the memory module)_
 
 ## Overview
