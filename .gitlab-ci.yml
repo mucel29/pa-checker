@@ -77,7 +77,7 @@ build:linux:arm64:
     - make deploy OS=linux ARCH=arm64 BIN_NAME=${APP_NAME}-linux-arm64
   artifacts:
     paths:
-      - ${APP_NAME}-linux-amd64
+      - ${APP_NAME}-linux-arm64
 
 
 build:windows:arm64:
