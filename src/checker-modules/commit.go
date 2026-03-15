@@ -99,9 +99,28 @@ func (cc *CommitChecker) Display(d *display.Display) {
 		}
 	}
 
-	d.Println("Detected some issues!")
+	var warnings []ModuleIssue
+	var realIssues []ModuleIssue
 	for _, issue := range cc.Issues {
-		d.Println(issue.Message)
+		if issue.Warning {
+			warnings = append(warnings, issue)
+		} else {
+			realIssues = append(realIssues, issue)
+		}
+	}
+
+	if len(warnings) > 0 {
+		d.Println(fmt.Sprintf("Got %d warning(s) (no points deducted yet):", len(warnings)))
+		for _, w := range warnings {
+			d.Println("[WARNING] " + w.Message)
+		}
+	}
+
+	if len(realIssues) > 0 {
+		d.Println("Detected some issues!")
+		for _, issue := range realIssues {
+			d.Println(issue.Message)
+		}
 	}
 
 	d.Println(fmt.Sprintf("The final score is %d/%d.", cc.Score(), int(utils.Config.CommitChecker.Grade*100)))
@@ -122,7 +141,7 @@ func (cc *CommitChecker) Dump() {
 // receives the commit line without the commit hash
 func checkCommits(line string) error {
 	if !strings.Contains(line, ":") {
-		return errors.New("invalid format! Hint, the format is: <type of commit>: <message>)")
+		return errors.New("invalid format! Hint, the format is: <type of commit>: <message (at least 10 characters)>)")
 	}
 
 	typeAndMessage := strings.SplitN(line, ":", 2)
@@ -130,7 +149,7 @@ func checkCommits(line string) error {
 
 	//TODO: replace 10 later
 	if len(message) < 10 {
-		return errors.New("the message is too short")
+		return errors.New("the message is too short (it should be at least 10 characters)")
 	}
 
 	return nil
@@ -185,6 +204,7 @@ func (cc *CommitChecker) Run() {
 	lines = lines[0 : len(lines)-1]
 	cc.commits = make([]string, len(lines))
 
+	maximumAmountOfWarnings := 0
 	for i, line := range lines {
 		splitLine := strings.SplitN(line, " ", 2)
 
@@ -199,8 +219,16 @@ func (cc *CommitChecker) Run() {
 			err := checkCommits(splitLine[1])
 			if err != nil {
 				errMsg := "Bad commit detected: " + err.Error() + " the commit was \"" + splitLine[1] + "\"\n"
-				issue := ModuleIssue{Message: errMsg}
-				cc.Issues = append(cc.Issues, issue)
+
+				maximumAmountOfWarnings++
+
+				if maximumAmountOfWarnings <= 3 {
+					issue := ModuleIssue{Message: errMsg, Warning: true}
+					cc.Issues = append(cc.Issues, issue)
+				} else {
+					issue := ModuleIssue{Message: errMsg}
+					cc.Issues = append(cc.Issues, issue)
+				}
 				continue
 			}
 		}
@@ -220,14 +248,22 @@ func (cc *CommitChecker) Run() {
 
 	deduction := 100 / utils.Config.CommitChecker.MinCommits
 
-	if len(cc.Issues) == 0 {
+	// Separate warnings (no deduction) from real penalty issues
+	penaltyIssues := 0
+	for _, iss := range cc.Issues {
+		if !iss.Critical && !iss.Warning {
+			penaltyIssues++
+		}
+	}
+
+	if penaltyIssues == 0 {
 		return
 	}
 
-	if len(cc.Issues) > 3 {
+	if penaltyIssues > 3 {
 		cc.score = 0
 		return
 	}
 
-	cc.score -= len(cc.Issues) * deduction
+	cc.score -= penaltyIssues * deduction
 }
