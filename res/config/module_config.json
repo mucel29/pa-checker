@@ -1,5 +1,5 @@
+// THIS IS LEFT AS EXAMPLE - NO LONGER EMBEDED IN THE EXECUTABLE
 // EXAMPLE MODULE CONFIG --- CHANGE LATER
-
 {
   "temp_path": "./.checker_temp",
   // Please avoid cyclic macros
@@ -8,151 +8,214 @@
     "TEST_DIR": "$SRC_DIR/teste",
     "TEST_TEST_DIR": "$TEST_DIR/teste2"
   },
-
   "tests": [
     {
       "displayName": "data1",
       "file": "data1",
-      "args": ["$IN", "$OUT"],
+      "args": [
+        "$IN",
+        "$OUT"
+      ],
       "score": 4
     },
     {
       "displayName": "data2",
       "file": "data2",
-      "args": ["$IN", "$OUT"],
+      "args": [
+        "$IN",
+        "$OUT"
+      ],
       "score": 4
     },
     {
       "displayName": "data3",
       "file": "data3",
-      "args": ["$IN", "$OUT"],
+      "args": [
+        "$IN",
+        "$OUT"
+      ],
       "score": 4
     },
     {
       "displayName": "data4",
       "file": "data4",
-      "args": ["$IN", "$OUT"],
-
+      "args": [
+        "$IN",
+        "$OUT"
+      ],
       "score": 4
     },
     {
       "displayName": "data5",
       "file": "data5",
-      "args": ["$IN", "$OUT"],
+      "args": [
+        "$IN",
+        "$OUT"
+      ],
       "score": 4
     },
     {
       "displayName": "data6",
       "file": "data6",
-      "args": ["$IN", "$OUT"],
+      "args": [
+        "$IN",
+        "$OUT"
+      ],
       "score": 5
     },
     {
       "displayName": "data7",
       "file": "data7",
-      "args": ["$IN", "$OUT"],
+      "args": [
+        "$IN",
+        "$OUT"
+      ],
       "score": 5
     },
     {
       "displayName": "data8",
       "file": "data8",
-      "args": ["$IN", "$OUT"],
+      "args": [
+        "$IN",
+        "$OUT"
+      ],
       "score": 5
     },
     {
       "displayName": "data9",
       "file": "data9",
-      "args": ["$IN", "$OUT"],
+      "args": [
+        "$IN",
+        "$OUT"
+      ],
       "score": 5
     },
     {
       "displayName": "data10",
       "file": "data10",
-      "args": ["$IN", "$OUT"],
+      "args": [
+        "$IN",
+        "$OUT"
+      ],
       "score": 5
     },
     {
       "displayName": "data11",
       "file": "data11",
-      "args": ["$IN", "$OUT"],
+      "args": [
+        "$IN",
+        "$OUT"
+      ],
       "score": 5
     },
     {
       "displayName": "data12",
       "file": "data12",
-      "args": ["$IN", "$OUT"],
+      "args": [
+        "$IN",
+        "$OUT"
+      ],
       "score": 5
     },
     {
       "displayName": "data13",
       "file": "data13",
-      "args": ["$IN", "$OUT"],
+      "args": [
+        "$IN",
+        "$OUT"
+      ],
       "score": 5
     },
     {
       "displayName": "data14",
       "file": "data14",
-      "args": ["$IN", "$OUT"],
+      "args": [
+        "$IN",
+        "$OUT"
+      ],
       "score": 5
     },
     {
       "displayName": "data15",
       "file": "data15",
-      "args": ["$IN", "$OUT"],
+      "args": [
+        "$IN",
+        "$OUT"
+      ],
       "score": 5
     },
     {
       "displayName": "data16",
       "file": "data16",
-      "args": ["$IN", "$OUT"],
+      "args": [
+        "$IN",
+        "$OUT"
+      ],
       "score": 4
     },
     {
       "displayName": "data17",
       "file": "data17",
-      "args": ["$IN", "$OUT"],
+      "args": [
+        "$IN",
+        "$OUT"
+      ],
       "score": 4
     },
     {
       "displayName": "data18",
       "file": "data18",
-      "args": ["$IN", "$OUT"],
+      "args": [
+        "$IN",
+        "$OUT"
+      ],
       "score": 4
     },
     {
       "displayName": "data19",
       "file": "data19",
-      "args": ["$IN", "$OUT"],
+      "args": [
+        "$IN",
+        "$OUT"
+      ],
       "score": 4
     },
     {
       "displayName": "data20",
       "file": "data20",
-      "args": ["$IN", "$OUT"],
+      "args": [
+        "$IN",
+        "$OUT"
+      ],
       "score": 4
     }
   ],
-
   "ref_checker": {
     "output_dependent": true,
     "grade": 0.5
   },
   "commit_checker": {
-    "dependencies": ["git"],
+    "dependencies": [
+      "git"
+    ],
     "output_dependent": false,
     "minCommits": 3,
     "useFormat": true,
     "grade": 0.1
   },
   "memory_checker": {
-    "dependencies": ["valgrind"],
+    "dependencies": [
+      "valgrind"
+    ],
     "output_dependent": true,
     "maxWarnings": 20,
     "maxLeak": 100, // MB
     "grade": 0.2
   },
   "style_checker": {
-    "dependencies": ["cppcheck"],
+    "dependencies": [
+      "cppcheck"
+    ],
     "output_dependent": false,
     "score_threshold": 60,
     "grade": 0.2,

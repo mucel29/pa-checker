@@ -22,7 +22,7 @@ var Config struct {
 	DefaultUserConfig string
 }
 
-func InitConfig(defaultUserConfigStr string, moduleConfigStr string, projectPath string) error {
+func InitConfig(defaultUserConfigStr string, projectPath string) error {
 	var err error
 
 	ProjectPath = projectPath
@@ -45,9 +45,14 @@ func InitConfig(defaultUserConfigStr string, moduleConfigStr string, projectPath
 		return err
 	}
 
-	Config.ModuleConfig, err = newModuleConfig(moduleConfigStr)
+	moduleConfigBytes, err := os.ReadFile(Abs("tests.json"))
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read tests.json: %w", err)
+	}
+
+	Config.ModuleConfig, err = newModuleConfig(string(moduleConfigBytes))
+	if err != nil {
+		return fmt.Errorf("failed to parse tests.json: %w", err)
 	}
 
 	Config.DefaultUserConfig = defaultUserConfigStr
