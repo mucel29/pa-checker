@@ -1,4 +1,4 @@
-image: golang:lastest
+image: golang:latest
 
 variables:
   APP_NAME: "checker"
