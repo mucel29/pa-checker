@@ -345,13 +345,9 @@ func (mc *MemoryChecker) Run() {
 		go func() {
 			defer wg.Done()
 
-			absTempPath, err := filepath.Abs(utils.Config.TempPath)
-			if err != nil {
-				utils.Err("Failed to get absolute temp")
-				return
-			}
+			absTempPath := utils.Abs(utils.Config.TempPath)
 
-			data, err := os.ReadFile(fmt.Sprintf("%s/%s.xml", absTempPath, test.File))
+			data, err := os.ReadFile(filepath.Join(absTempPath, fmt.Sprintf("%s.xml", test.File)))
 			if err != nil {
 				utils.Err(fmt.Sprintf("Failed to read file: %s.xml", test.File))
 				return

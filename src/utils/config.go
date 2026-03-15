@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
-const (
-	UserConfigPath = "./config.json"
-)
-
+var UserConfigPath = "config.json"
 var logFile *os.File
 var logger *slog.Logger
+
+var ProjectPath string
 
 var Config struct {
 	*ModuleConfig
@@ -22,10 +22,18 @@ var Config struct {
 	DefaultUserConfig string
 }
 
-func InitConfig(defaultUserConfigStr string, moduleConfigStr string) error {
+func InitConfig(defaultUserConfigStr string, moduleConfigStr string, projectPath string) error {
 	var err error
 
-	logFile, err = os.Create("./checker_log.txt")
+	ProjectPath = projectPath
+	absPath, err := filepath.Abs(ProjectPath)
+	if err == nil {
+		ProjectPath = absPath
+	}
+
+	UserConfigPath = filepath.Join(ProjectPath, "config.json")
+
+	logFile, err = os.Create(filepath.Join(ProjectPath, "checker_log.txt"))
 	if err != nil {
 		return err
 	}
@@ -106,4 +114,13 @@ func ExpandMacros(str string, contextMacros map[string]string) string {
 	}
 
 	return str
+}
+
+func Abs(rel string) string {
+	if filepath.IsAbs(rel) {
+		return rel
+	}
+	absPath, _ := filepath.Abs(filepath.Join(ProjectPath, rel))
+
+	return absPath
 }
