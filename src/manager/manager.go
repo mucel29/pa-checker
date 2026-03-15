@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"checker-pa/src/checker-modules"
 	"checker-pa/src/utils"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -95,12 +96,6 @@ func (m *Manager) checkCapabilities() {
 	*/
 }
 
-func abs(rel string) string {
-	absPath, _ := filepath.Abs(rel)
-
-	return absPath
-}
-
 func NewManager() (*Manager, error) {
 	var m Manager
 
@@ -124,10 +119,10 @@ func NewManager() (*Manager, error) {
 
 	go func() {
 
-		prevPath := abs(utils.Config.ExecutablePath)
+		prevPath := utils.Abs(utils.Config.ExecutablePath)
 		prevStat, err := os.Stat(prevPath)
 		for {
-			currentPath := abs(utils.Config.ExecutablePath)
+			currentPath := utils.Abs(utils.Config.ExecutablePath)
 			currentStat, err2 := os.Stat(currentPath)
 			if (err != nil && err2 == nil) || (err == nil && err2 == nil && (prevPath != currentPath || prevStat.ModTime().Before(currentStat.ModTime()))) {
 				utils.Log("file change detected!")
@@ -189,24 +184,19 @@ func (m *Manager) registerModules() error {
 
 func updateMacros() {
 	// Output path
-	outPath, err := filepath.Abs(utils.Config.OutputPath)
-	if err == nil {
-		utils.ConfigMacros["OUT_DIR"] = outPath
-	}
+	outPath := utils.Abs(utils.Config.OutputPath)
+	utils.Log("Output path: " + outPath)
+	utils.ConfigMacros["OUT_DIR"] = outPath
 
 	// Make sure input path exists
-	inPath, err := filepath.Abs(utils.Config.InputPath)
-	if err == nil {
-		if _, err := os.Stat(inPath); err == nil {
-			utils.ConfigMacros["IN_DIR"] = inPath
-		}
+	inPath := utils.Abs(utils.Config.InputPath)
+	if _, err := os.Stat(inPath); err == nil {
+		utils.ConfigMacros["IN_DIR"] = inPath
 	}
 
-	srcPath, err := filepath.Abs(utils.Config.SourcePath)
-	if err == nil {
-		if _, err := os.Stat(srcPath); err == nil {
-			utils.ConfigMacros["SRC_DIR"] = srcPath
-		}
+	srcPath := utils.Abs(utils.Config.SourcePath)
+	if _, err := os.Stat(srcPath); err == nil {
+		utils.ConfigMacros["SRC_DIR"] = srcPath
 	}
 
 	// Load module config macros
@@ -226,9 +216,11 @@ func (m *Manager) RetrieveConfig() error {
 			return err
 		}
 
-		// Bug: if fields are not present, they get changed to ""
-		utils.Config.UserConfig, err = utils.NewUserConfig(string(data))
-		if err != nil {
+		// Unmarshal into the existing config to preserve default values
+		// for fields not present in the user's config file. This also
+		// keeps the config pointer stable for other parts of the app.
+		newSource := utils.CommentRegex.ReplaceAllString(string(data), "")
+		if err := json.Unmarshal([]byte(newSource), utils.Config.UserConfig); err != nil {
 			return err
 		}
 	} else {
@@ -249,10 +241,7 @@ func (m *Manager) RetrieveConfig() error {
 
 func forwardBytes(bytes bytes.Buffer, filename string) error {
 
-	absForward, err := filepath.Abs(utils.Config.ForwardPath)
-	if err != nil {
-		return err
-	}
+	absForward := utils.Abs(utils.Config.ForwardPath)
 	if err := os.Mkdir(absForward, 0777); err != nil {
 		if !errors.Is(err, os.ErrExist) {
 			utils.Err(fmt.Sprintf("failed creating forward directory: %s", absForward))
@@ -312,7 +301,7 @@ func (m *Manager) Run() error {
 
 	m.checkCapabilities()
 
-	if _, err := exec.LookPath(utils.Config.ExecutablePath); err != nil {
+	if _, err := exec.LookPath(utils.Abs(utils.Config.ExecutablePath)); err != nil {
 		for _, module := range m.Modules {
 			module.Panic()
 		}
@@ -323,7 +312,7 @@ func (m *Manager) Run() error {
 			// This one is recoverable, don't crash
 			return nil
 		}
-		
+
 		m.BasicSummary("[ERR] " + utils.Config.ExecutablePath + " not found")
 		return errors.New("executable not found: " + utils.Config.ExecutablePath)
 	}
@@ -331,10 +320,7 @@ func (m *Manager) Run() error {
 	start := time.Now()
 
 	// Make sure temp path exists
-	tempPath, err := filepath.Abs(utils.Config.TempPath)
-	if err != nil {
-		return err
-	}
+	tempPath := utils.Abs(utils.Config.TempPath)
 
 	if err := os.Mkdir(tempPath, 0777); err != nil {
 		if !errors.Is(err, os.ErrExist) {
@@ -406,11 +392,7 @@ func (m *Manager) Run() error {
 
 				xmlPath := filepath.Join(tempPath, fmt.Sprintf("%s.xml", test.File))
 
-				execPath, err := filepath.Abs(utils.Config.ExecutablePath)
-				if err != nil {
-					utils.Err(fmt.Sprintf("failed getting executable path: %s", xmlPath))
-					return // err
-				}
+				execPath := utils.Abs(utils.Config.ExecutablePath)
 
 				valgrindArgs := []string{
 					"--leak-check=yes",
@@ -421,8 +403,10 @@ func (m *Manager) Run() error {
 				cmd = exec.Command("valgrind", append(append(valgrindArgs, execPath), processedArgs...)...) //nolint:gosec
 				// fmt.Println("running: valgrind " + strings.Join(append(append(valgrindArgs, execPath), processedArgs...), " "))
 			} else {
-				cmd = exec.Command(utils.Config.ExecutablePath, processedArgs...) //nolint:gosec
+				cmd = exec.Command(utils.Abs(utils.Config.ExecutablePath), processedArgs...) //nolint:gosec
 			}
+
+			cmd.Dir = utils.ProjectPath
 
 			// fmt.Printf("%d: %s %s\n\n", i+1, utils.Config.ExecutablePath, strings.Join(processedArgs, " "))
 

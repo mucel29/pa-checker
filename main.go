@@ -16,15 +16,17 @@ var moduleConfigStr string
 var defaultUserConfigStr string
 
 var useInteractive bool
+var projectPath string
 
 func init() {
 	flag.BoolVar(&useInteractive, "i", false, "Interactive mode")
+	flag.StringVar(&projectPath, "path", ".", "Project path")
 }
 
 func main() {
 	flag.Parse()
 
-	err := utils.InitConfig(defaultUserConfigStr, moduleConfigStr)
+	err := utils.InitConfig(defaultUserConfigStr, moduleConfigStr, projectPath)
 	if err != nil {
 		utils.Fatal("FATAL ERROR DETECTED! " + err.Error() + "\n ABORTING!")
 	}
