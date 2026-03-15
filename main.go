@@ -9,8 +9,7 @@ import (
 	"flag"
 )
 
-//go:embed res/config/module_config.json
-var moduleConfigStr string
+
 
 //go:embed res/config/user_config.json
 var defaultUserConfigStr string
@@ -26,7 +25,7 @@ func init() {
 func main() {
 	flag.Parse()
 
-	err := utils.InitConfig(defaultUserConfigStr, moduleConfigStr, projectPath)
+	err := utils.InitConfig(defaultUserConfigStr, projectPath)
 	if err != nil {
 		utils.Fatal("FATAL ERROR DETECTED! " + err.Error() + "\n ABORTING!")
 	}
