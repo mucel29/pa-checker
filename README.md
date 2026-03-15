@@ -78,6 +78,16 @@ sudo apt install git
 ./checker -i
 ```
 
+<br>
+
+> You can also specify the project's path using `-path <path>` if you wish to run the checker
+> in a diferent directory
+> 
+> ```bash
+> # Path specification example
+> ../checker -path ./my_project -i
+> ```
+
 ### Navigating the interactive interface
 
 * Use the `arrow keys` to navigate around

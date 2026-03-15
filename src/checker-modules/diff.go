@@ -5,6 +5,7 @@ import (
 	"checker-pa/src/utils"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -92,8 +93,8 @@ func (dm *DiffModule) Run() {
 	defer func() { dm.status = Ready }()
 
 	config := utils.Config.UserConfig
-	folder1 := config.RefPath
-	folder2 := config.OutputPath
+	folder1 := utils.Abs(config.RefPath)
+	folder2 := utils.Abs(config.OutputPath)
 
 	numFiles := len(utils.Config.Tests)
 
@@ -378,8 +379,8 @@ func (dm *DiffModule) compareFilesInFolders(folder1, folder2 string) int {
 		go func() {
 			defer wg.Done()
 
-			file1 := fmt.Sprintf("%s/%s.ref", folder1, test.File)
-			file2 := fmt.Sprintf("%s/%s.out", folder2, test.File)
+			file1 := filepath.Join(folder1, fmt.Sprintf("%s.ref", test.File))
+			file2 := filepath.Join(folder2, fmt.Sprintf("%s.out", test.File))
 
 			// utils.Log(file1)
 			// utils.Log(file2)

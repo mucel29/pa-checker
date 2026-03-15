@@ -7,11 +7,11 @@ import (
 	"slices"
 )
 
-var commentRegex = regexp.MustCompile("//.*")
+var CommentRegex = regexp.MustCompile("//.*")
 
 func NewUserConfig(source string) (*UserConfig, error) {
 	var m UserConfig
-	newSource := commentRegex.ReplaceAllString(source, "")
+	newSource := CommentRegex.ReplaceAllString(source, "")
 	err := json.Unmarshal([]byte(newSource), &m)
 
 	if err != nil {
@@ -23,7 +23,7 @@ func NewUserConfig(source string) (*UserConfig, error) {
 
 func newModuleConfig(source string) (*ModuleConfig, error) {
 	var m ModuleConfig
-	newSource := commentRegex.ReplaceAllString(source, "")
+	newSource := CommentRegex.ReplaceAllString(source, "")
 	err := json.Unmarshal([]byte(newSource), &m)
 
 	if err != nil {
@@ -51,7 +51,7 @@ func ComputeBestArea(size int) (int, int) {
 		root := int(math.Sqrt(float64(size)))
 		return root, root
 	*/
-	
+
 	var facts []factorization
 	// Calculate all the possible factorizations
 	for i := size - 1; i > 1; i-- {

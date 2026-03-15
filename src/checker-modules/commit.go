@@ -142,6 +142,7 @@ func (cc *CommitChecker) Run() {
 
 	args := []string{"log", "--oneline", "--all"}
 	cmd := exec.Command("git", args...)
+	cmd.Dir = utils.ProjectPath
 
 	output, err := cmd.Output()
 	if err != nil {
@@ -151,7 +152,7 @@ func (cc *CommitChecker) Run() {
 			return
 		}
 		// if the student didn't "git init" before, this will give an ambiguous error
-		_, newErr := os.Stat(".git")
+		_, newErr := os.Stat(utils.Abs(".git"))
 		if errors.Is(newErr, os.ErrNotExist) {
 			errMsg := "Couldn't find any commits, are you sure you ran 'git init' first?"
 			issue := ModuleIssue{Message: errMsg, Critical: true}

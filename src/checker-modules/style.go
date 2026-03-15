@@ -203,7 +203,7 @@ func (sc *StyleChecker) Run() {
 		"--inconclusive",
 		"--suppress=missingIncludeSystem",
 		"--language=c",
-		config.SourcePath,
+		utils.Abs(config.SourcePath),
 	}
 
 	cmd := exec.Command("cppcheck", args...)
