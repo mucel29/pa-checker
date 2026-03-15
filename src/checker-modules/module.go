@@ -2,9 +2,10 @@ package checkermodules
 
 import (
 	"checker-pa/src/display"
-	"github.com/fatih/color"
 	"strconv"
 	"strings"
+
+	"github.com/fatih/color"
 )
 
 type ModuleIssue struct {
@@ -14,6 +15,7 @@ type ModuleIssue struct {
 	Message     string
 	ShowLineCol bool
 	Critical    bool
+	Warning     bool
 }
 
 type ModuleError struct {
