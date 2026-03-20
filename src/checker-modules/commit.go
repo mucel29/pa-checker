@@ -21,7 +21,7 @@ type CommitChecker struct {
 	status  ModuleStatus
 }
 
-var ErrNotFound = errors.New(" The checker couldn't find git on your system. Are you sure it's installed?")
+var ErrNotFound = errors.New("The checker couldn't find git on your system. Are you sure it's installed?")
 
 func (*CommitChecker) GetName() string {
 	return "COMMIT"
@@ -114,14 +114,14 @@ func (cc *CommitChecker) Display(d *display.Display) {
 	if len(warnings) > 0 {
 		d.Println(fmt.Sprintf("Got %d warning(s) (no points deducted yet):", len(warnings)))
 		for _, w := range warnings {
-			d.Println("[WARNING] " + w.Message)
+			d.Println("(WARNING): " + w.Message)
 		}
 	}
 
 	if len(realIssues) > 0 {
-		d.Println("Detected some issues!")
+		d.Println(fmt.Sprintf("Got %d issue(s)!", len(realIssues)))
 		for _, issue := range realIssues {
-			d.Println(issue.Message)
+			d.Println("(Issue): " + issue.Message)
 		}
 	}
 
@@ -253,7 +253,7 @@ func (cc *CommitChecker) Run() {
 
 	penaltyIssues := 0
 	for _, iss := range cc.Issues {
-		if !iss.Critical && !iss.Warning {
+		if !iss.Critical && !iss.Warning { // critical errors shouldn't reach here but check just in case
 			penaltyIssues++
 		}
 	}
@@ -262,5 +262,8 @@ func (cc *CommitChecker) Run() {
 		return
 	}
 
-	cc.score -= int(math.Max(float64(penaltyIssues*deduction), 0.0))
+	cc.score = int(math.Max(float64(cc.score-penaltyIssues*deduction), 0.0))
+	if cc.score > 100 {
+		cc.Issues = append(cc.Issues, ModuleIssue{Message: "If the score is above 100 please report it to any of the assistants or teachers."})
+	}
 }
