@@ -264,6 +264,6 @@ func (cc *CommitChecker) Run() {
 
 	cc.score = int(math.Max(float64(cc.score-penaltyIssues*deduction), 0.0))
 	if cc.score > 100 {
-		cc.Issues = append(cc.Issues, ModuleIssue{Message: "If the score is above 100 please report it to any of the assistants or teachers."})
+		cc.Issues = append(cc.Issues, ModuleIssue{Message: "If the score is above 100 please report it to any of the assistants or teachers. Also please send the .git folder.", Critical: true})
 	}
 }
