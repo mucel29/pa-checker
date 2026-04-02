@@ -378,9 +378,17 @@ func (mc *MemoryChecker) Run() {
 			for idx > -1 {
 				if output.Errors[idx].isUserGenerated() {
 					w := memoryCheckerIssue{message: output.Errors[idx].What}
-					w.file = output.Errors[idx].Stack.Frames[1].File
-					w.function = output.Errors[idx].Stack.Frames[1].Fn
-					w.line = output.Errors[idx].Stack.Frames[1].Line
+                    
+
+                    if len(output.Errors[idx].Stack.Frames) == 1 {
+                        w.file = output.Errors[idx].Stack.Frames[0].File
+                        w.function = output.Errors[idx].Stack.Frames[0].Fn
+                        w.line = output.Errors[idx].Stack.Frames[0].Line
+                    } else {
+                        w.file = output.Errors[idx].Stack.Frames[1].File
+                        w.function = output.Errors[idx].Stack.Frames[1].Fn
+                        w.line = output.Errors[idx].Stack.Frames[1].Line
+                    }
 
 					testResult.warnings = append(testResult.warnings, w)
 				}
