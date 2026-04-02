@@ -33,6 +33,7 @@ type FormattedOutput struct {
 type FileCompareResult struct {
 	filename string
 	matched  bool
+	timedOut bool
 	diffs    []diffmatchpatch.Diff
 	points   int
 	FormattedOutput
@@ -117,7 +118,11 @@ func (dm *DiffModule) Run() {
 	// Add issues for mismatched files
 	for _, result := range dm.results {
 		dm.totalScore += result.points
-		if !result.matched {
+		if result.timedOut {
+			dm.Issues = append(dm.Issues, ModuleIssue{
+				Message: fmt.Sprintf("File %s timed out", result.filename),
+			})
+		} else if !result.matched {
 			dm.Issues = append(dm.Issues, ModuleIssue{
 				Message: fmt.Sprintf("File %s has differences", result.filename),
 			})
@@ -160,11 +165,21 @@ func (dm *DiffModule) Display(d *display.Display) {
 			currentCol++
 		}
 
-		cell := tview.NewTableCell(fmt.Sprintf("[%02d] %s", result.points, result.filename))
-
-		if result.matched {
-			cell.SetTextColor(tcell.ColorGreen)
+		var cellText string
+		if result.timedOut {
+			cellText = fmt.Sprintf(tview.Escape("[TO] %s"), result.filename)
 		} else {
+			cellText = fmt.Sprintf("[%02d] %s", result.points, result.filename)
+		}
+
+		cell := tview.NewTableCell(cellText)
+
+		switch {
+		case result.timedOut:
+			cell.SetTextColor(tcell.ColorYellow)
+		case result.matched:
+			cell.SetTextColor(tcell.ColorGreen)
+		default:
 			cell.SetTextColor(tcell.ColorRed)
 		}
 
@@ -239,6 +254,9 @@ func updateComparisonDisplay(d *display.Display, result FileCompareResult) {
 	// Prepare the output section content
 	var outContent strings.Builder
 	outContent.WriteString("[::b]Output content for " + result.filename + ":[white]\n")
+	if result.timedOut {
+		outContent.WriteString("[yellow]WARNING: This test timed out! Output might be incomplete.[white]\n")
+	}
 	outContent.WriteString("------------------------------\n\n")
 
 	for _, line := range result.output {
@@ -414,6 +432,7 @@ func (dm *DiffModule) compareFilesInFolders(folder1, folder2 string) int {
 			ar.add(i, FileCompareResult{
 				filename:        test.DisplayName,
 				matched:         matched,
+				timedOut:        utils.Config.Tests[i].TimedOut,
 				diffs:           diffs,
 				points:          points,
 				FormattedOutput: generateFormattedOutput(diffs),

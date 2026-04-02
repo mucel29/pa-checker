@@ -30,6 +30,18 @@ func newModuleConfig(source string) (*ModuleConfig, error) {
 		return nil, err
 	}
 
+	if m.DefaultTimeout == nil {
+		Log("Warning: No default_timeout found in tests.json, defaulting to 10 seconds")
+		defaultVal := 10
+		m.DefaultTimeout = &defaultVal
+	}
+
+	if m.ValgrindMultiplier == nil {
+		Log("Warning: No valgrind_multiplier found in tests.json, defaulting to 3x")
+		multVal := 3
+		m.ValgrindMultiplier = &multVal
+	}
+
 	return &m, nil
 }
 

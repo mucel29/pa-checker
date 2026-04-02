@@ -47,12 +47,16 @@ func (m *Manager) CleanUp() {
 	for _, cmd := range m.activeCmds {
 		if cmd != nil && cmd.Process != nil {
 			if cmd.SysProcAttr != nil && cmd.SysProcAttr.Setpgid {
-				if err := syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL); err != nil {
+				if err := syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL); err != nil && !errors.Is(err, syscall.ESRCH) {
 					utils.Log(fmt.Sprintf("failed to kill process group %d: %v", -cmd.Process.Pid, err))
+				} else if err == nil {
+					utils.Log(fmt.Sprintf("killed process group %d", -cmd.Process.Pid))
 				}
 			}
-			if err := cmd.Process.Kill(); err != nil {
+			if err := cmd.Process.Kill(); err != nil && !errors.Is(err, os.ErrProcessDone) && !errors.Is(err, syscall.ESRCH) {
 				utils.Log(fmt.Sprintf("failed to kill process %d: %v", cmd.Process.Pid, err))
+			} else if err == nil {
+				utils.Log(fmt.Sprintf("killed process %d", cmd.Process.Pid))
 			}
 		}
 	}
@@ -354,8 +358,6 @@ func (m *Manager) Run() error {
 		return errors.New("executable not found: " + utils.Config.ExecutablePath)
 	}
 
-	start := time.Now()
-
 	// Make sure temp path exists
 	tempPath := utils.Abs(utils.Config.TempPath)
 
@@ -405,79 +407,7 @@ func (m *Manager) Run() error {
 
 	for i, test := range utils.Config.Tests {
 		wg.Add(1)
-		go func() {
-			defer func() { wg.Done(); atomic.AddInt32(&ranTests, 1) }()
-
-			// Create Context macros
-			contextMacros := map[string]string{
-				"FILE": test.File,
-				"IN":   fmt.Sprintf("%s/%s.in", utils.ConfigMacros["IN_DIR"], test.File),
-				"OUT":  fmt.Sprintf("%s/%s.out", utils.ConfigMacros["OUT_DIR"], test.File),
-				"N":    strconv.Itoa(i),
-			}
-
-			var processedArgs []string
-
-			// Process args
-			for _, arg := range test.Args {
-				processedArgs = append(processedArgs, utils.ExpandMacros(arg, contextMacros))
-			}
-
-			var cmd *exec.Cmd
-
-			if m.capabilities["valgrind"] && utils.Config.RunValgrind {
-
-				xmlPath := filepath.Join(tempPath, fmt.Sprintf("%s.xml", test.File))
-
-				execPath := utils.Abs(utils.Config.ExecutablePath)
-
-				valgrindArgs := []string{
-					"--leak-check=yes",
-					"--xml=yes",
-					fmt.Sprintf("--xml-file=%s", xmlPath),
-				}
-
-				cmd = exec.CommandContext(m.ctx, "valgrind", append(append(valgrindArgs, execPath), processedArgs...)...) //nolint:gosec
-				// fmt.Println("running: valgrind " + strings.Join(append(append(valgrindArgs, execPath), processedArgs...), " "))
-			} else {
-				cmd = exec.CommandContext(m.ctx, utils.Abs(utils.Config.ExecutablePath), processedArgs...) //nolint:gosec
-			}
-
-			limits.WrapLimits(cmd)
-
-			cmd.Dir = utils.ProjectPath
-
-			m.cmdMutex.Lock()
-			m.activeCmds = append(m.activeCmds, cmd)
-			m.cmdMutex.Unlock()
-
-			// fmt.Printf("%d: %s %s\n\n", i+1, utils.Config.ExecutablePath, strings.Join(processedArgs, " "))
-
-			var stdout, stderr bytes.Buffer
-			cmd.Stdout = &stdout
-			cmd.Stderr = &stderr
-
-			start = time.Now()
-
-			if err := cmd.Run(); err != nil {
-				utils.Err("Error running " + test.File)
-			}
-
-			// Forward stdout
-			if err := forwardBytes(stdout, fmt.Sprintf("%s.stdout", test.File)); err != nil {
-				utils.Err(fmt.Sprintf("failed forwarding stdout %s", test.File))
-				return // err
-			}
-
-			// Forward stderr
-			if err := forwardBytes(stderr, fmt.Sprintf("%s.stderr", test.File)); err != nil {
-				utils.Err(fmt.Sprintf("failed forwarding stderr %s", test.File))
-				return // err
-			}
-
-			utils.Log(fmt.Sprintf("[%s] %s", time.Since(start).String(), test.File))
-
-		}()
+		go m.runTest(i, test, &wg, &ranTests, tempPath)
 	}
 
 	updateDisplay := true
@@ -544,4 +474,104 @@ func (m *Manager) TotalScore() int {
 	}
 
 	return total
+}
+
+func (m *Manager) runTest(i int, test utils.Test, wg *sync.WaitGroup, ranTests *int32, tempPath string) {
+	defer func() { wg.Done(); atomic.AddInt32(ranTests, 1) }()
+
+	// Create Context macros
+	contextMacros := map[string]string{
+		"FILE": test.File,
+		"IN":   fmt.Sprintf("%s/%s.in", utils.ConfigMacros["IN_DIR"], test.File),
+		"OUT":  fmt.Sprintf("%s/%s.out", utils.ConfigMacros["OUT_DIR"], test.File),
+		"N":    strconv.Itoa(i),
+	}
+
+	var processedArgs []string
+
+	// Process args
+	for _, arg := range test.Args {
+		processedArgs = append(processedArgs, utils.ExpandMacros(arg, contextMacros))
+	}
+
+	var cmd *exec.Cmd
+
+	timeoutDuration := *utils.Config.ModuleConfig.DefaultTimeout
+	if test.Timeout != nil {
+		timeoutDuration = *test.Timeout
+	}
+
+	var cmdCtx context.Context
+	var cancel context.CancelFunc
+
+	if timeoutDuration > 0 {
+		if m.capabilities["valgrind"] && utils.Config.RunValgrind {
+			timeoutDuration *= *utils.Config.ModuleConfig.ValgrindMultiplier
+		}
+		cmdCtx, cancel = context.WithTimeout(m.ctx, time.Duration(timeoutDuration)*time.Second)
+	} else {
+		cmdCtx, cancel = context.WithCancel(m.ctx)
+	}
+	defer cancel()
+
+	if m.capabilities["valgrind"] && utils.Config.RunValgrind {
+		xmlPath := filepath.Join(tempPath, fmt.Sprintf("%s.xml", test.File))
+
+		execPath := utils.Abs(utils.Config.ExecutablePath)
+
+		valgrindArgs := []string{
+			"--leak-check=yes",
+			"--xml=yes",
+			fmt.Sprintf("--xml-file=%s", xmlPath),
+		}
+
+		cmd = exec.CommandContext(cmdCtx, "valgrind", append(append(valgrindArgs, execPath), processedArgs...)...) //nolint:gosec
+		// fmt.Println("running: valgrind " + strings.Join(append(append(valgrindArgs, execPath), processedArgs...), " "))
+	} else {
+		cmd = exec.CommandContext(cmdCtx, utils.Abs(utils.Config.ExecutablePath), processedArgs...) //nolint:gosec
+	}
+
+	limits.WrapLimits(cmd)
+
+	cmd.Dir = utils.ProjectPath
+
+	m.cmdMutex.Lock()
+	m.activeCmds = append(m.activeCmds, cmd)
+	m.cmdMutex.Unlock()
+
+	// fmt.Printf("%d: %s %s\n\n", i+1, utils.Config.ExecutablePath, strings.Join(processedArgs, " "))
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	start := time.Now()
+
+	utils.Config.Tests[i].TimedOut = false
+
+	if err := cmd.Run(); err != nil {
+		switch cmdCtx.Err() {
+		case context.DeadlineExceeded:
+			utils.Config.Tests[i].TimedOut = true
+			utils.Err(fmt.Sprintf("Timeout running %s (exceeded %ds)", test.File, timeoutDuration))
+		case context.Canceled:
+			utils.Err("Cancelled running " + test.File)
+		default:
+			utils.Err(fmt.Sprintf("Error running %s: %s", test.File, cmd.ProcessState.String()))
+		}
+	}
+
+	// Forward stdout
+	if err := forwardBytes(stdout, fmt.Sprintf("%s.stdout", test.File)); err != nil {
+		utils.Err(fmt.Sprintf("failed forwarding stdout %s", test.File))
+		return
+	}
+
+	// Forward stderr
+	if err := forwardBytes(stderr, fmt.Sprintf("%s.stderr", test.File)); err != nil {
+		utils.Err(fmt.Sprintf("failed forwarding stderr %s", test.File))
+		return
+	}
+
+	utils.Log(fmt.Sprintf("[%s] %s", time.Since(start).String(), test.File))
 }

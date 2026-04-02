@@ -12,8 +12,6 @@ import (
 	"syscall"
 )
 
-
-
 //go:embed res/config/user_config.json
 var defaultUserConfigStr string
 
