@@ -34,7 +34,6 @@ type FileCompareResult struct {
 	filename string
 	matched  bool
 	timedOut bool
-	diffs    []diffmatchpatch.Diff
 	points   int
 	FormattedOutput
 }
@@ -341,25 +340,211 @@ func readFile(filename string) (string, error) {
 	return string(data), nil
 }
 
-func generateFormattedOutput(diffs []diffmatchpatch.Diff) FormattedOutput {
-	var refText, outText string
-	for _, diff := range diffs {
-		switch diff.Type {
+// replaceWhitespaces substitutes invisible chars with visible placeholders for diff display.
+func replaceWhitespaces(s string) string {
+	s = strings.ReplaceAll(s, " ", "·")
+	s = strings.ReplaceAll(s, "\t", "→   ")
+	s = strings.ReplaceAll(s, "\r", "␍")
+	return s
+}
+
+// formatLine strips trailing newline and wraps content in a tview color tag.
+func formatLine(line string, color string) string {
+	hasNewline := strings.HasSuffix(line, "\n")
+	if hasNewline {
+		line = strings.TrimSuffix(line, "\n")
+	}
+
+	escaped := tview.Escape(line)
+	if color != "" {
+		return fmt.Sprintf("[%s]%s[white]", color, escaped)
+	}
+	return escaped
+}
+
+// lineExists checks if a line appears anywhere in the text (used for swapped-line detection).
+func lineExists(text string, target string) bool {
+	targetTrimmed := strings.TrimSuffix(target, "\n")
+	if targetTrimmed == "" {
+		return false
+	}
+	lines := strings.Split(text, "\n")
+	for _, l := range lines {
+		if l == targetTrimmed {
+			return true
+		}
+	}
+	return false
+}
+
+const newlineSymbol = "↵"
+
+// prepareLineStr strips trailing newline, replaces whitespace chars, and appends ↵ if needed.
+func prepareLineStr(line string) string {
+	hasNl := strings.HasSuffix(line, "\n")
+	if hasNl {
+		line = strings.TrimSuffix(line, "\n")
+	}
+	s := replaceWhitespaces(line)
+	if hasNl {
+		s += newlineSymbol
+	}
+	return s
+}
+
+// renderInlineDiff produces colored ref/out strings for two mismatched lines.
+func renderInlineDiff(dmp *diffmatchpatch.DiffMatchPatch, del, ins string) (string, string) {
+	delStr := prepareLineStr(del)
+	insStr := prepareLineStr(ins)
+
+	inlineDiffs := dmp.DiffMain(delStr, insStr, false)
+
+	var rText, oText string
+	for _, inline := range inlineDiffs {
+		escaped := tview.Escape(inline.Text)
+		switch inline.Type {
 		case diffmatchpatch.DiffInsert:
-			outText += fmt.Sprintf("\033[32m%s\033[0m", diff.Text)
-			// refText += strings.Repeat(" ", len(diff.Text))
+			oText += fmt.Sprintf("[red]%s[white]", escaped)
 		case diffmatchpatch.DiffDelete:
-			refText += fmt.Sprintf("\033[31m%s\033[0m", diff.Text)
-			// outText += strings.Repeat(" ", len(diff.Text))
+			rText += fmt.Sprintf("[red]%s[white]", escaped)
 		case diffmatchpatch.DiffEqual:
-			refText += diff.Text
-			outText += diff.Text
+			rText += fmt.Sprintf("[green]%s[white]", escaped)
+			oText += fmt.Sprintf("[green]%s[white]", escaped)
+		}
+	}
+	return rText, oText
+}
+
+// renderSoloLine formats a single unpaired line as red (missing/extra) with whitespace markers.
+func renderSoloLine(line string) string {
+	return fmt.Sprintf("[red]%s[white]", tview.Escape(prepareLineStr(line)))
+}
+
+// flushPending aligns pending deletes/inserts side-by-side and applies
+// yellow (swapped), red (missing/extra), or inline char-level diff coloring.
+func flushPending(
+	dmp *diffmatchpatch.DiffMatchPatch,
+	text1, text2 string,
+	pendingDeletes, pendingInserts []string,
+	refOut, outOut *[]string,
+) {
+	if len(pendingDeletes) == 0 && len(pendingInserts) == 0 {
+		return
+	}
+
+	maxL := len(pendingDeletes)
+	if len(pendingInserts) > maxL {
+		maxL = len(pendingInserts)
+	}
+
+	for i := 0; i < maxL; i++ {
+		var del, ins string
+		hasDel := i < len(pendingDeletes)
+		hasIns := i < len(pendingInserts)
+
+		if hasDel {
+			del = pendingDeletes[i]
+		}
+		if hasIns {
+			ins = pendingInserts[i]
+		}
+
+		switch {
+		case hasDel && hasIns:
+			// Yellow if lines swapped positions; inline char diff otherwise.
+			delTrimmed := strings.TrimSuffix(del, "\n")
+			insTrimmed := strings.TrimSuffix(ins, "\n")
+			if delTrimmed != insTrimmed &&
+				lineExists(text2, del) && lineExists(text1, ins) {
+				*refOut = append(*refOut, formatLine(del, "yellow"))
+				*outOut = append(*outOut, formatLine(ins, "yellow"))
+				continue
+			}
+			rText, oText := renderInlineDiff(dmp, del, ins)
+			*refOut = append(*refOut, rText)
+			*outOut = append(*outOut, oText)
+		case hasDel:
+			// Unpaired ref line: yellow if displaced, red if truly missing from output.
+			if lineExists(text2, del) {
+				*refOut = append(*refOut, formatLine(del, "yellow"))
+			} else {
+				*refOut = append(*refOut, renderSoloLine(del))
+			}
+			*outOut = append(*outOut, "")
+		case hasIns:
+			// Unpaired output line: yellow if displaced, red if extra/unexpected.
+			*refOut = append(*refOut, "")
+			if lineExists(text1, ins) {
+				*outOut = append(*outOut, formatLine(ins, "yellow"))
+			} else {
+				*outOut = append(*outOut, renderSoloLine(ins))
+			}
+		}
+	}
+}
+
+// compareWholeFile runs a block-aligned line diff and produces formatted side-by-side output.
+func compareWholeFile(text1, text2 string) (bool, FormattedOutput) {
+	dmp := diffmatchpatch.New()
+
+	// Encode lines as single chars, diff those, then decode back to full lines.
+	text1Lines, text2Lines, lineArray := dmp.DiffLinesToChars(text1, text2)
+	diffs := dmp.DiffMain(text1Lines, text2Lines, false)
+	diffs = dmp.DiffCharsToLines(diffs, lineArray)
+
+	matched := true
+	for _, d := range diffs {
+		if d.Type != diffmatchpatch.DiffEqual {
+			matched = false
+			break
 		}
 	}
 
-	return FormattedOutput{
-		reference: strings.Split(refText, "\n"),
-		output:    strings.Split(outText, "\n"),
+	var refOut []string
+	var outOut []string
+
+	var pendingDeletes []string
+	var pendingInserts []string
+
+	// Split preserving trailing \n on each line; drop the empty trailing element.
+	splitLines := func(s string) []string {
+		if s == "" {
+			return nil
+		}
+		lines := strings.SplitAfter(s, "\n")
+		if len(lines) > 0 && lines[len(lines)-1] == "" {
+			lines = lines[:len(lines)-1]
+		}
+		return lines
+	}
+
+	equalColor := ""
+
+	// Walk diff ops: queue deletes/inserts, flush on equal blocks for side-by-side alignment.
+	for _, d := range diffs {
+		lines := splitLines(d.Text)
+		switch d.Type {
+		case diffmatchpatch.DiffEqual:
+			flushPending(dmp, text1, text2, pendingDeletes, pendingInserts, &refOut, &outOut)
+			pendingDeletes = nil
+			pendingInserts = nil
+			for _, line := range lines {
+				formatted := formatLine(line, equalColor)
+				refOut = append(refOut, formatted)
+				outOut = append(outOut, formatted)
+			}
+		case diffmatchpatch.DiffDelete:
+			pendingDeletes = append(pendingDeletes, lines...)
+		case diffmatchpatch.DiffInsert:
+			pendingInserts = append(pendingInserts, lines...)
+		}
+	}
+	// Flush any remaining pending lines at end of file.
+	flushPending(dmp, text1, text2, pendingDeletes, pendingInserts, &refOut, &outOut)
+
+	return matched, FormattedOutput{
+		reference: refOut,
+		output:    outOut,
 	}
 }
 
@@ -417,11 +602,9 @@ func (dm *DiffModule) compareFilesInFolders(folder1, folder2 string) int {
 				return // 0, fmt.Errorf("error reading file2: %w", err)
 			}
 
-			dmp := diffmatchpatch.New()
-			diffs := dmp.DiffMain(text1, text2, false)
+			matched, formattedOut := compareWholeFile(text1, text2)
 
 			points := 0
-			matched := len(diffs) == 1 && diffs[0].Type == diffmatchpatch.DiffEqual
 			if matched {
 				ar.inc()
 				points = test.Score
@@ -433,9 +616,8 @@ func (dm *DiffModule) compareFilesInFolders(folder1, folder2 string) int {
 				filename:        test.DisplayName,
 				matched:         matched,
 				timedOut:        utils.Config.Tests[i].TimedOut,
-				diffs:           diffs,
 				points:          points,
-				FormattedOutput: generateFormattedOutput(diffs),
+				FormattedOutput: formattedOut,
 			})
 
 		}()
@@ -449,44 +631,4 @@ func (dm *DiffModule) compareFilesInFolders(folder1, folder2 string) int {
 	return ar.matches
 }
 
-/*
-func showDifferences(result FileCompareResult, displayType int) {
-	if result.matched {
-		fmt.Printf("\033[32mFile %s: Files are identical\033[0m\n", result.filename)
-		return
-	}
 
-	fmt.Printf("\033[31mFile %s: Files are different\033[0m\n", result.filename)
-
-	if displayType == 1 {
-		// Original inline display
-		for _, diff := range result.diffs {
-			switch diff.Type {
-			case diffmatchpatch.DiffInsert:
-				fmt.Printf("\033[32m%s\033[0m", diff.Text)
-			case diffmatchpatch.DiffDelete:
-				fmt.Printf("\033[31m%s\033[0m", diff.Text)
-			case diffmatchpatch.DiffEqual:
-				fmt.Printf("%s", diff.Text)
-			}
-		}
-	} else if displayType == 2 {
-		fmt.Println("\nReference:")
-		fmt.Println("----------")
-		for _, line := range result.reference {
-			if line != "" {
-				fmt.Println(line)
-			}
-		}
-
-		fmt.Println("\nOutput:")
-		fmt.Println("-------")
-		for _, line := range result.output {
-			if line != "" {
-				fmt.Println(line)
-			}
-		}
-	}
-	fmt.Println()
-}
-*/
