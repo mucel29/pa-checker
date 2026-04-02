@@ -5,6 +5,7 @@ import (
 	checkermodules "checker-pa/src/checker-modules"
 	"checker-pa/src/utils"
 	"checker-pa/src/utils/limits"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -16,6 +17,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"time"
 )
 
@@ -25,6 +27,35 @@ type Manager struct {
 	capabilities map[string]bool
 
 	StatusPing func(caption string)
+
+	ctx    context.Context
+	cancel context.CancelFunc
+
+	activeCmds []*exec.Cmd
+	cmdMutex   sync.Mutex
+}
+
+func (m *Manager) CleanUp() {
+	// Cancel all active commands
+	if m.cancel != nil {
+		m.cancel()
+	}
+
+	// Kill all active commands
+	m.cmdMutex.Lock()
+	defer m.cmdMutex.Unlock()
+	for _, cmd := range m.activeCmds {
+		if cmd != nil && cmd.Process != nil {
+			if cmd.SysProcAttr != nil && cmd.SysProcAttr.Setpgid {
+				if err := syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL); err != nil {
+					utils.Log(fmt.Sprintf("failed to kill process group %d: %v", -cmd.Process.Pid, err))
+				}
+			}
+			if err := cmd.Process.Kill(); err != nil {
+				utils.Log(fmt.Sprintf("failed to kill process %d: %v", cmd.Process.Pid, err))
+			}
+		}
+	}
 }
 
 func (m *Manager) BasicSummary(caption string) {
@@ -100,6 +131,7 @@ func (m *Manager) checkCapabilities() {
 func NewManager() (*Manager, error) {
 	var m Manager
 
+	m.ctx, m.cancel = context.WithCancel(context.Background())
 	m.capabilities = make(map[string]bool)
 
 	err := m.registerModules()
@@ -300,6 +332,10 @@ func (m *Manager) Run() error {
 
 	utils.Log("launched new run")
 
+	m.cmdMutex.Lock()
+	m.activeCmds = make([]*exec.Cmd, 0)
+	m.cmdMutex.Unlock()
+
 	m.checkCapabilities()
 
 	if _, err := exec.LookPath(utils.Abs(utils.Config.ExecutablePath)); err != nil {
@@ -401,15 +437,19 @@ func (m *Manager) Run() error {
 					fmt.Sprintf("--xml-file=%s", xmlPath),
 				}
 
-				cmd = exec.Command("valgrind", append(append(valgrindArgs, execPath), processedArgs...)...) //nolint:gosec
+				cmd = exec.CommandContext(m.ctx, "valgrind", append(append(valgrindArgs, execPath), processedArgs...)...) //nolint:gosec
 				// fmt.Println("running: valgrind " + strings.Join(append(append(valgrindArgs, execPath), processedArgs...), " "))
 			} else {
-				cmd = exec.Command(utils.Abs(utils.Config.ExecutablePath), processedArgs...) //nolint:gosec
+				cmd = exec.CommandContext(m.ctx, utils.Abs(utils.Config.ExecutablePath), processedArgs...) //nolint:gosec
 			}
 
 			limits.WrapLimits(cmd)
 
 			cmd.Dir = utils.ProjectPath
+
+			m.cmdMutex.Lock()
+			m.activeCmds = append(m.activeCmds, cmd)
+			m.cmdMutex.Unlock()
 
 			// fmt.Printf("%d: %s %s\n\n", i+1, utils.Config.ExecutablePath, strings.Join(processedArgs, " "))
 
