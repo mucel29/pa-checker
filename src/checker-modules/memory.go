@@ -378,8 +378,7 @@ func (mc *MemoryChecker) Run() {
 			for idx > -1 {
 				if output.Errors[idx].isUserGenerated() {
 					w := memoryCheckerIssue{message: output.Errors[idx].What}
-                    fmt.Println("errors: ", len(output.Errors))
-                    fmt.Println("stack frames: ", len(output.Errors[idx].Stack.Frames))
+                    
 
                     if len(output.Errors[idx].Stack.Frames) == 1 {
                         w.file = output.Errors[idx].Stack.Frames[0].File
