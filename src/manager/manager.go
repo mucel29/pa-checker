@@ -2,8 +2,9 @@ package manager
 
 import (
 	"bytes"
-	"checker-pa/src/checker-modules"
+	checkermodules "checker-pa/src/checker-modules"
 	"checker-pa/src/utils"
+	"checker-pa/src/utils/limits"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -405,6 +406,8 @@ func (m *Manager) Run() error {
 			} else {
 				cmd = exec.Command(utils.Abs(utils.Config.ExecutablePath), processedArgs...) //nolint:gosec
 			}
+
+			limits.WrapLimits(cmd)
 
 			cmd.Dir = utils.ProjectPath
 
