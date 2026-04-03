@@ -19,7 +19,7 @@ lint:
   timeout: 7min
   stage: lint
   script:
-    - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.64.5
+    - go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.5
     - go install honnef.co/go/tools/cmd/staticcheck@latest
     - make vet
     - make lint

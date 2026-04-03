@@ -7,9 +7,10 @@ import (
 	"checker-pa/src/utils"
 	_ "embed"
 	"flag"
+	"os"
+	"os/signal"
+	"syscall"
 )
-
-
 
 //go:embed res/config/user_config.json
 var defaultUserConfigStr string
@@ -35,6 +36,18 @@ func main() {
 	if err != nil {
 		utils.Fatal("FATAL ERROR DETECTED! " + err.Error() + "\n ABORTING!")
 	}
+	defer m.CleanUp()
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGHUP)
+	go func() {
+		<-sigChan
+		utils.Log("Received interrupt/termination signal. Cleaning up...")
+		if m != nil {
+			m.CleanUp()
+		}
+		os.Exit(1)
+	}()
 
 	// TODO?: make this return an error as well?
 	// m.Check()
@@ -43,6 +56,9 @@ func main() {
 
 		utils.Log("Interactive Display")
 		d := display.NewDisplay()
+		d.OnStop = func() {
+			m.CleanUp()
+		}
 
 		go func() {
 			err := m.Run()

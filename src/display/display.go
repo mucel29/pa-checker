@@ -3,7 +3,6 @@ package display
 import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
-	"os"
 )
 
 type PageStack []Page
@@ -43,6 +42,7 @@ type Display struct {
 	pageStack *PageStack
 	Root      *tview.Flex
 	App       *tview.Application
+	OnStop    func()
 }
 
 func (d *Display) currentPage() *Page {
@@ -73,7 +73,7 @@ func NewDisplay() *Display {
 		}
 		// Exit App
 		if event.Key() == tcell.KeyCtrlC {
-			display.App.Stop()
+			display.Stop()
 		}
 		return event
 	})
@@ -131,6 +131,7 @@ func (d *Display) PreviousPage() {
 	// Stop the App if the current page is the main menu
 	if d.pageStack.Len() == 1 {
 		d.Stop()
+		return
 	}
 
 	// Pop the current page and reload the last
@@ -167,8 +168,10 @@ func (d *Display) CurrentContainer() *WritableContainer {
 }
 
 func (d *Display) Stop() {
+	if d.OnStop != nil {
+		d.OnStop()
+	}
 	d.App.Stop()
-	os.Exit(0)
 }
 
 func (d *Display) PrintPage(index int, title string, buffer string) {

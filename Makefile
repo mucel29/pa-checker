@@ -26,7 +26,7 @@ endif
 
 # Common tasks
 dependencies:
-	go get -d ./...
+	go mod download
 
 fmt:
 	gofmt -s -l -w $(PKGS)

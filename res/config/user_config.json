@@ -6,5 +6,5 @@
     "ref_path": "./ref",
     "forward_path": "./forward",
     "run_valgrind": false,
-    "tutorial": false
+    "tutorial": true
 }

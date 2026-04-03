@@ -510,6 +510,10 @@ func (m *Menu) createMainMenu() {
 
 	m.AddElement(&display.PageElement{Element: mainContainer, Proportion: 1, Focused: false})
 	m.App.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyCtrlC {
+			m.Stop()
+			return nil
+		}
 		if event.Key() == tcell.KeyEscape {
 			// IDK if this should be called, like save the options and stuff
 			// m.CurrentContainer().TriggerChange()

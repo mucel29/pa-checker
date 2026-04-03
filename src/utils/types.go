@@ -9,6 +9,9 @@ type Test struct {
 	Ordered     bool     `json:"ordered"`
 	WhiteSpace  bool     `json:"whitespace"`
 	Score       int      `json:"score"`
+	Timeout     *int     `json:"timeout,omitempty"`
+	TimedOut    bool     `json:"-"`
+	Crashed     bool     `json:"-"`
 }
 
 type RefChecker struct {
@@ -45,9 +48,11 @@ type StyleChecker struct {
 }
 
 type ModuleConfig struct {
-	TempPath string            `json:"temp_path"`
-	Macros   map[string]string `json:"macros"`
-	Tests    []Test            `json:"tests"`
+	TempPath           string            `json:"temp_path"`
+	DefaultTimeout     *int              `json:"default_timeout"`
+	ValgrindMultiplier *int              `json:"valgrind_multiplier"`
+	Macros             map[string]string `json:"macros"`
+	Tests              []Test            `json:"tests"`
 
 	*RefChecker    `json:"ref_checker"`
 	*CommitChecker `json:"commit_checker"`
