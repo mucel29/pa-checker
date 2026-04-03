@@ -3,8 +3,8 @@ package manager
 import (
 	"bytes"
 	checkermodules "checker-pa/src/checker-modules"
+	"checker-pa/src/platform"
 	"checker-pa/src/utils"
-	"checker-pa/src/utils/limits"
 	"context"
 	"encoding/json"
 	"errors"
@@ -17,7 +17,6 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
-	"syscall"
 	"time"
 )
 
@@ -46,16 +45,16 @@ func (m *Manager) CleanUp() {
 	defer m.cmdMutex.Unlock()
 	for _, cmd := range m.activeCmds {
 		if cmd != nil && cmd.Process != nil {
-			if cmd.SysProcAttr != nil && cmd.SysProcAttr.Setpgid {
-				if err := syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL); err != nil && !errors.Is(err, syscall.ESRCH) {
-					utils.Log(fmt.Sprintf("failed to kill process group %d: %v", -cmd.Process.Pid, err))
+			if platform.HasProcessGroup(cmd) {
+				if err := platform.KillProcessGroup(cmd); err != nil && !platform.IsProcessGoneError(err) {
+					utils.Log(fmt.Sprintf("failed to kill process group %s: %v", platform.ProcessGroupPid(cmd), err))
 				} else if err == nil {
-					utils.Log(fmt.Sprintf("killed process group %d", -cmd.Process.Pid))
+					utils.Log(fmt.Sprintf("killed process group %s", platform.ProcessGroupPid(cmd)))
 				}
 			}
-			if err := cmd.Process.Kill(); err != nil && !errors.Is(err, os.ErrProcessDone) && !errors.Is(err, syscall.ESRCH) {
+			if err := platform.KillProcess(cmd); err != nil {
 				utils.Log(fmt.Sprintf("failed to kill process %d: %v", cmd.Process.Pid, err))
-			} else if err == nil {
+			} else {
 				utils.Log(fmt.Sprintf("killed process %d", cmd.Process.Pid))
 			}
 		}
@@ -531,7 +530,8 @@ func (m *Manager) runTest(i int, test utils.Test, wg *sync.WaitGroup, ranTests *
 		cmd = exec.CommandContext(cmdCtx, utils.Abs(utils.Config.ExecutablePath), processedArgs...) //nolint:gosec
 	}
 
-	limits.WrapLimits(cmd)
+	platform.SetProcessGroup(cmd)
+	platform.WrapLimits(cmd)
 
 	cmd.Dir = utils.ProjectPath
 
@@ -558,12 +558,8 @@ func (m *Manager) runTest(i int, test utils.Test, wg *sync.WaitGroup, ranTests *
 		case context.Canceled:
 			utils.Err("Cancelled running " + test.File)
 		default:
-			if exitErr, ok := err.(*exec.ExitError); ok {
-				if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
-					if status.Signaled() {
-						utils.Config.Tests[i].Crashed = true
-					}
-				}
+			if platform.IsCrashSignal(err) {
+				utils.Config.Tests[i].Crashed = true
 			}
 			utils.Err(fmt.Sprintf("Error running %s: %s", test.File, cmd.ProcessState.String()))
 		}
