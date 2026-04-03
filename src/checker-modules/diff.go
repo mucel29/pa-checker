@@ -118,15 +118,16 @@ func (dm *DiffModule) Run() {
 	// Add issues for mismatched files
 	for _, result := range dm.results {
 		dm.totalScore += result.points
-		if result.timedOut {
+		switch {
+		case result.timedOut:
 			dm.Issues = append(dm.Issues, ModuleIssue{
 				Message: fmt.Sprintf("File %s timed out", result.filename),
 			})
-		} else if result.crashed {
+		case result.crashed:
 			dm.Issues = append(dm.Issues, ModuleIssue{
 				Message: fmt.Sprintf("File %s crashed", result.filename),
 			})
-		} else if !result.matched {
+		case !result.matched:
 			dm.Issues = append(dm.Issues, ModuleIssue{
 				Message: fmt.Sprintf("File %s has differences", result.filename),
 			})
@@ -170,11 +171,12 @@ func (dm *DiffModule) Display(d *display.Display) {
 		}
 
 		var cellText string
-		if result.timedOut {
+		switch {
+		case result.timedOut:
 			cellText = fmt.Sprintf(tview.Escape("[TO] %s"), result.filename)
-		} else if result.crashed {
+		case result.crashed:
 			cellText = fmt.Sprintf(tview.Escape("[SF] %s"), result.filename)
-		} else {
+		default:
 			cellText = fmt.Sprintf("[%02d] %s", result.points, result.filename)
 		}
 

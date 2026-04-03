@@ -39,6 +39,7 @@ sudo apt install git
 
 - [x] Configuration
   - [x] Configurable tests
+  - [x] Configurable timeouts
   - [x] Configurable modules
   - [x] User configuration
   - [x] Macros
@@ -46,6 +47,7 @@ sudo apt install git
 - [x] Modules
   - [x] Module dependency checks
   - [x] Diff module
+  - [x] Crash detection
   - [x] Memory module _(valgrind backend)_
   - [x] Style module _(cppcheck backend)_
   - [x] Commit module _(git backend)_
@@ -226,6 +228,10 @@ make vet
 
 make lint
 ```
+
+<br>
+
+> Alternatively, you can run the pipeline locally using `gitlab-ci-local`
 
 ### Commit format
 
