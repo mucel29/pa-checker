@@ -72,6 +72,7 @@ func (sc *StyleChecker) Display(d *display.Display) {
 
 	if len(sc.Issues) == 0 {
 		d.PrintPage(0, "$nb", "Now this is some piece of art you've written!")
+		return
 	}
 
 	// TODO: also sort issues by line number and col after grouping
