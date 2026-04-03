@@ -11,6 +11,7 @@ type Test struct {
 	Score       int      `json:"score"`
 	Timeout     *int     `json:"timeout,omitempty"`
 	TimedOut    bool     `json:"-"`
+	Crashed     bool     `json:"-"`
 }
 
 type RefChecker struct {

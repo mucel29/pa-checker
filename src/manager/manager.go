@@ -548,6 +548,7 @@ func (m *Manager) runTest(i int, test utils.Test, wg *sync.WaitGroup, ranTests *
 	start := time.Now()
 
 	utils.Config.Tests[i].TimedOut = false
+	utils.Config.Tests[i].Crashed = false
 
 	if err := cmd.Run(); err != nil {
 		switch cmdCtx.Err() {
@@ -557,6 +558,13 @@ func (m *Manager) runTest(i int, test utils.Test, wg *sync.WaitGroup, ranTests *
 		case context.Canceled:
 			utils.Err("Cancelled running " + test.File)
 		default:
+			if exitErr, ok := err.(*exec.ExitError); ok {
+				if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
+					if status.Signaled() {
+						utils.Config.Tests[i].Crashed = true
+					}
+				}
+			}
 			utils.Err(fmt.Sprintf("Error running %s: %s", test.File, cmd.ProcessState.String()))
 		}
 	}

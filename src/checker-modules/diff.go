@@ -34,6 +34,7 @@ type FileCompareResult struct {
 	filename string
 	matched  bool
 	timedOut bool
+	crashed  bool
 	points   int
 	FormattedOutput
 }
@@ -121,6 +122,10 @@ func (dm *DiffModule) Run() {
 			dm.Issues = append(dm.Issues, ModuleIssue{
 				Message: fmt.Sprintf("File %s timed out", result.filename),
 			})
+		} else if result.crashed {
+			dm.Issues = append(dm.Issues, ModuleIssue{
+				Message: fmt.Sprintf("File %s crashed", result.filename),
+			})
 		} else if !result.matched {
 			dm.Issues = append(dm.Issues, ModuleIssue{
 				Message: fmt.Sprintf("File %s has differences", result.filename),
@@ -167,6 +172,8 @@ func (dm *DiffModule) Display(d *display.Display) {
 		var cellText string
 		if result.timedOut {
 			cellText = fmt.Sprintf(tview.Escape("[TO] %s"), result.filename)
+		} else if result.crashed {
+			cellText = fmt.Sprintf(tview.Escape("[SF] %s"), result.filename)
 		} else {
 			cellText = fmt.Sprintf("[%02d] %s", result.points, result.filename)
 		}
@@ -176,6 +183,8 @@ func (dm *DiffModule) Display(d *display.Display) {
 		switch {
 		case result.timedOut:
 			cell.SetTextColor(tcell.ColorYellow)
+		case result.crashed:
+			cell.SetTextColor(tcell.ColorRed)
 		case result.matched:
 			cell.SetTextColor(tcell.ColorGreen)
 		default:
@@ -255,6 +264,8 @@ func updateComparisonDisplay(d *display.Display, result FileCompareResult) {
 	outContent.WriteString("[::b]Output content for " + result.filename + ":[white]\n")
 	if result.timedOut {
 		outContent.WriteString("[yellow]WARNING: This test timed out! Output might be incomplete.[white]\n")
+	} else if result.crashed {
+		outContent.WriteString("[red]WARNING: This test crashed / segfaulted! Output might be incomplete.[white]\n")
 	}
 	outContent.WriteString("------------------------------\n\n")
 
@@ -616,6 +627,7 @@ func (dm *DiffModule) compareFilesInFolders(folder1, folder2 string) int {
 				filename:        test.DisplayName,
 				matched:         matched,
 				timedOut:        utils.Config.Tests[i].TimedOut,
+				crashed:         utils.Config.Tests[i].Crashed,
 				points:          points,
 				FormattedOutput: formattedOut,
 			})
