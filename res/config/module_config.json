@@ -2,6 +2,8 @@
 // EXAMPLE MODULE CONFIG --- CHANGE LATER
 {
   "temp_path": "./.checker_temp",
+  "default_timeout": 3,
+  "valgrind_multiplier": 3,
   // Please avoid cyclic macros
   "macros": {
     "MACRO": "test123",
